@@ -6,80 +6,109 @@ from googleapiclient.discovery import build
 from typing import List, Optional
 from datetime import datetime
 from .base import RemoteTask, Provider
+from pathlib import Path
 
-# If modifying these scopes, delete the file token.pickle.
 SCOPES = ['https://www.googleapis.com/auth/tasks']
 
 class GoogleTasksProvider:
     name = "google"
 
-    def __init__(self, credentials_path: str = 'credentials.json', token_path: str = 'token.pickle'):
-        self.credentials_path = credentials_path
-        self.token_path = token_path
+    def __init__(self):
+        config_dir = Path.home() / ".config" / "utask"
+        os.makedirs(config_dir, exist_ok=True)
+        self.token_path = str(config_dir / "google_token.pickle")
+        # Wir suchen die credentials.json NUR im Projektordner oder im Config-Ordner
+        self.creds_path = 'credentials.json'
+        if not os.path.exists(self.creds_path):
+            self.creds_path = str(config_dir / "credentials.json")
+            
         self.service = self._authenticate()
 
     def _authenticate(self):
         creds = None
         if os.path.exists(self.token_path):
             with open(self.token_path, 'rb') as token:
-                creds = pickle.load(token)
+                try: creds = pickle.load(token)
+                except: creds = None
         
         if not creds or not creds.valid:
             if creds and creds.expired and creds.refresh_token:
-                creds.refresh(Request())
-            else:
-                if not os.path.exists(self.credentials_path):
-                    return None
-                flow = InstalledAppFlow.from_client_secrets_file(self.credentials_path, SCOPES)
-                creds = flow.run_local_server(port=0)
+                try:
+                    creds.refresh(Request())
+                    with open(self.token_path, 'wb') as token:
+                        pickle.dump(creds, token)
+                except: return None
+            else: return None
+
+        return build('tasks', 'v1', credentials=creds, static_discovery=False)
+
+    def is_authenticated(self) -> bool:
+        return self.service is not None
+
+    def run_login_flow(self):
+        """Startet den Browser-Login. Erfordert die credentials.json im Ordner."""
+        try:
+            if not os.path.exists(self.creds_path):
+                return "MISSING_FILE"
+
+            flow = InstalledAppFlow.from_client_secrets_file(self.creds_path, SCOPES)
+            creds = flow.run_local_server(port=0, title="UniversalTask Google Login")
             
             with open(self.token_path, 'wb') as token:
                 pickle.dump(creds, token)
-
-        return build('tasks', 'v1', credentials=creds)
+            
+            self.service = build('tasks', 'v1', credentials=creds, static_discovery=False)
+            return "SUCCESS"
+        except Exception as e:
+            print(f"Login Fehler: {e}")
+            return "ERROR"
 
     def get_tasks(self) -> List[RemoteTask]:
         if not self.service: return []
-        results = self.service.tasks().list(tasklist='@default').execute()
-        items = results.get('items', [])
-        
-        remote_tasks = []
-        for item in items:
-            remote_tasks.append(RemoteTask(
+        try:
+            results = self.service.tasks().list(tasklist='@default').execute()
+            items = results.get('items', [])
+            return [RemoteTask(
                 remote_id=item['id'],
                 title=item['title'],
                 status=item['status'],
                 last_modified=datetime.fromisoformat(item['updated'].replace('Z', '+00:00'))
-            ))
-        return remote_tasks
+            ) for item in items]
+        except: return []
 
     def create_task(self, task) -> str:
         if not self.service: return ""
-        task_body = {'title': task.title}
-        result = self.service.tasks().insert(tasklist='@default', body=task_body).execute()
-        return result['id']
+        try:
+            result = self.service.tasks().insert(tasklist='@default', body={'title': task.title}).execute()
+            return result['id']
+        except: return ""
 
     def update_task(self, remote_id: str, task) -> bool:
         if not self.service: return False
-        task_body = {'id': remote_id, 'title': task.title, 'status': task.status}
-        self.service.tasks().update(tasklist='@default', task=remote_id, body=task_body).execute()
-        return True
+        try:
+            self.service.tasks().update(tasklist='@default', task=remote_id, body={
+                'id': remote_id, 'title': task.title, 'status': task.status
+            }).execute()
+            return True
+        except: return False
 
     def delete_task(self, remote_id: str) -> bool:
         if not self.service: return False
-        self.service.tasks().delete(tasklist='@default', task=remote_id).execute()
-        return True
+        try:
+            self.service.tasks().delete(tasklist='@default', task=remote_id).execute()
+            return True
+        except: return False
+
+    def get_lists(self) -> List[str]:
+        if not self.service: return []
+        try:
+            results = self.service.tasklists().list().execute()
+            return [l['title'] for l in results.get('items', [])]
+        except: return []
 
     def create_list(self, name: str) -> bool:
-        # Google Tasks uses 'tasklists'
         if not self.service: return False
-        body = {'title': name}
-        self.service.tasklists().insert(body=body).execute()
-        return True
-
-    def delete_list(self, name: str) -> bool:
-        # Simplified: search by name and delete
-        return False
-
-    def rename_list(self, old_name: str, new_name: str) -> bool:
-        return False
+        try:
+            self.service.tasklists().insert(body={'title': name}).execute()
+            return True
+        except: return False

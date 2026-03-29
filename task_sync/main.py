@@ -32,10 +32,24 @@ def get_engine(list_name: Optional[str] = None):
     if os.uname().sysname == 'Darwin':
         providers.append(AppleRemindersProvider(list_name=list_name))
         
-    if os.path.exists('credentials.json'):
-        providers.append(GoogleTasksProvider())
+    google = GoogleTasksProvider()
+    if google.is_authenticated():
+        providers.append(google)
         
     return SyncEngine(providers)
+
+@app.command()
+def auth(provider: str = typer.Argument(..., help="Name of the provider (e.g. 'google')")):
+    """Authenticate with a remote provider."""
+    if provider.lower() == "google":
+        typer.echo("🔗 Opening browser for Google Tasks login...")
+        google = GoogleTasksProvider()
+        if google.run_login_flow():
+            typer.secho("✅ Google Tasks authentication successful!", fg=typer.colors.GREEN)
+        else:
+            typer.secho("❌ Authentication failed. Make sure 'credentials.json' is present for now.", fg=typer.colors.RED)
+    else:
+        typer.echo(f"Unknown provider: {provider}")
 
 @app.command()
 def sync(list_name: Optional[str] = typer.Option(None, "--list", help="Name of the Apple Reminders list.")):
