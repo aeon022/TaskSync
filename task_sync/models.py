@@ -5,6 +5,7 @@ from datetime import datetime
 class Task(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     title: str
+    list_name: str = Field(default="Reminders", index=True)
     description: Optional[str] = None
     status: str = "needsAction" # "needsAction" or "completed"
     due_date: Optional[datetime] = None

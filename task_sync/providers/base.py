@@ -7,6 +7,7 @@ class RemoteTask(BaseModel):
     remote_id: str
     title: str
     status: str
+    list_name: str
     last_modified: datetime
 
 class Provider(Protocol):

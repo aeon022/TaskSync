@@ -72,6 +72,7 @@ class GoogleTasksProvider:
                 remote_id=item['id'],
                 title=item['title'],
                 status=item['status'],
+                list_name='Google Tasks',
                 last_modified=datetime.fromisoformat(item['updated'].replace('Z', '+00:00'))
             ) for item in items]
         except: return []

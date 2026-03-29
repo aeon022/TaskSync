@@ -239,7 +239,8 @@ class UniversalTaskApp(App):
         elif input_widget.id == "add-task-input":
             if value:
                 with get_session() as session:
-                    new_task = Task(title=value); session.add(new_task); session.commit()
+                    new_task = Task(title=value, list_name=self.current_list)
+                    session.add(new_task); session.commit()
                     session.refresh(new_task); task_id = new_task.id
                 self.refresh_tasks()
                 self.run_worker(partial(self.bg_sync_add, task_id, value, self.current_list), thread=True)
@@ -369,7 +370,8 @@ class UniversalTaskApp(App):
         try:
             task_list_view = self.query_one("#task-list", ListView); task_list_view.clear()
             with get_session() as session:
-                tasks = session.exec(select(Task)).all()
+                # Filter by current_list
+                tasks = session.exec(select(Task).where(Task.list_name == self.current_list)).all()
                 if self.search_filter: tasks = [t for t in tasks if self.search_filter in t.title.lower()]
                 if self.sort_method == "alpha": tasks.sort(key=lambda t: t.title.lower())
                 elif self.sort_method == "status": tasks.sort(key=lambda t: (t.status != "needsAction", t.title.lower()))

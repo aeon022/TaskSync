@@ -93,6 +93,7 @@ class MicrosoftToDoProvider:
             remote_id=item['id'],
             title=item['title'],
             status='completed' if item['status'] == 'completed' else 'needsAction',
+            list_name='Microsoft To Do',
             last_modified=datetime.fromisoformat(item['lastModifiedDateTime'].replace('Z', '+00:00'))
         ) for item in items]
 

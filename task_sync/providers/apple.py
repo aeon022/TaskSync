@@ -102,13 +102,14 @@ class AppleRemindersProvider:
                 remote_id=parts[0],
                 title=parts[1],
                 status=status,
+                list_name=target,
                 last_modified=mod_date
             ))
         return remote_tasks
 
     def create_task(self, task) -> str:
         """Create a new reminder."""
-        target = self.list_name
+        target = getattr(task, 'list_name', self.list_name)
         title_esc = task.title.replace('"', '\\"')
         script = f'''
         tell application "Reminders"
@@ -126,12 +127,14 @@ class AppleRemindersProvider:
 
     def update_task(self, remote_id: str, task) -> bool:
         completed = "true" if task.status == "completed" else "false"
+        target = getattr(task, 'list_name', self.list_name)
         # Escape quotes in title
         title_esc = task.title.replace('"', '\\"')
         script = f'''
         tell application "Reminders"
             try
-                set t to reminder id "{remote_id}"
+                set myList to list "{target}"
+                set t to reminder id "{remote_id}" of myList
                 set name of t to "{title_esc}"
                 set completed of t to {completed}
                 return "true"
@@ -143,6 +146,9 @@ class AppleRemindersProvider:
         return self._run_applescript(script) == "true"
 
     def delete_task(self, remote_id: str) -> bool:
+        # Since id is unique across lists in Reminders, we might not need list name
+        # but it's safer to have it if we know it.
+        # Actually, Reminders id IS unique globally.
         script = f'''
         tell application "Reminders"
             try
