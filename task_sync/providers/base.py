@@ -12,27 +12,28 @@ class RemoteTask(BaseModel):
 
 class Provider(Protocol):
     name: str
+    account_label: str = "" # e.g. "FH", "Privat", "Apple"
     
-    def get_tasks(self) -> List[RemoteTask]:
+    async def get_tasks(self, list_name: Optional[str] = None) -> List[RemoteTask]:
         ...
         
-    def get_lists(self) -> List[str]:
+    async def get_lists(self) -> List[str]:
         ...
         
-    def create_task(self, task) -> str:
+    async def create_task(self, title: str, list_name: str) -> Optional[str]:
         ...
         
-    def update_task(self, remote_id: str, task) -> bool:
+    async def update_task(self, remote_id: str, title: Optional[str] = None, status: Optional[str] = None) -> bool:
         ...
         
-    def delete_task(self, remote_id: str) -> bool:
+    async def delete_task(self, remote_id: str) -> bool:
         ...
         
-    def create_list(self, name: str) -> bool:
+    async def create_list(self, name: str) -> bool:
         ...
         
-    def delete_list(self, name: str) -> bool:
+    async def delete_list(self, name: str) -> bool:
         ...
         
-    def rename_list(self, old_name: str, new_name: str) -> bool:
+    async def rename_list(self, old_name: str, new_name: str) -> bool:
         ...

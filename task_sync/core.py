@@ -1,141 +1,202 @@
 import os
+import asyncio
+import logging
+from logging.handlers import RotatingFileHandler
 from pathlib import Path
-from sqlmodel import create_engine, Session, SQLModel, select
-from typing import List, Optional
-from .models import Task, SyncMapping
+from typing import List, Optional, Dict, Any
 from datetime import datetime, timezone
 
+from sqlmodel import SQLModel, select, delete
+from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
+from sqlalchemy.orm import sessionmaker
+
+from .models import Task, SyncMapping, TaskList
+
 # Default config directory
-CONFIG_DIR = Path.home() / ".config" / "utask"
-DB_PATH = CONFIG_DIR / "state.db"
+CONFIG_DIR = Path.home() / ".config" / "tasksync"
+LOG_FILE = CONFIG_DIR / "daemon.log"
 os.makedirs(CONFIG_DIR, exist_ok=True)
 
-engine = create_engine(f"sqlite:///{DB_PATH}")
+# Logging Setup
+logger = logging.getLogger("utaskd")
+logger.setLevel(logging.INFO)
+handler = RotatingFileHandler(LOG_FILE, maxBytes=1024 * 1024, backupCount=5)
+handler.setFormatter(logging.Formatter('%(asctime)s - %(levelname)s - %(message)s'))
+logger.addHandler(handler)
 
-_db_initialized = False
+DATABASE_URL = f"sqlite+aiosqlite:///{CONFIG_DIR / 'state.db'}"
 
-def init_db():
-    global _db_initialized
-    if _db_initialized:
-        return
-    print(f"Initializing database at {DB_PATH}...")
-    SQLModel.metadata.create_all(engine)
-    
-    # Simple migration: Add list_name column if it doesn't exist
-    try:
-        with engine.connect() as conn:
-            from sqlalchemy import text
-            conn.execute(text("ALTER TABLE task ADD COLUMN list_name VARCHAR DEFAULT 'Reminders'"))
-            conn.commit()
-    except:
-        pass
-        
-    _db_initialized = True
+engine = create_async_engine(DATABASE_URL, echo=False)
+AsyncSessionLocal = sessionmaker(
+    engine, class_=AsyncSession, expire_on_commit=False
+)
 
-def get_session():
-    init_db()
-    return Session(engine)
+async def init_db():
+    async with engine.begin() as conn:
+        await conn.run_sync(SQLModel.metadata.create_all)
 
 class SyncEngine:
-    def __init__(self, providers):
-        self.providers = providers # List of Provider objects
-        init_db()
+    def __init__(self, providers: List[Any]):
+        self.providers = providers
 
-    def sync(self):
-        """Main sync loop."""
-        for provider in self.providers:
-            # Fetch all lists for this provider
-            try:
-                lists = provider.get_lists()
-            except:
-                lists = ["Reminders"]
-            
-            if not lists:
-                lists = ["Reminders"]
+    def _get_display_name(self, label: str, list_name: str) -> str:
+        return f"[{label}] {list_name}"
 
-            for list_name in lists:
-                # Temporarily set the list for the provider
-                old_list = getattr(provider, "_list_name", None)
-                if hasattr(provider, "_list_name"):
-                    provider._list_name = list_name
-                
-                try:
-                    remote_tasks = provider.get_tasks()
-                except:
-                    remote_tasks = []
-                
-                with get_session() as session:
-                    for remote_task in remote_tasks:
-                        mapping = session.exec(
-                            select(SyncMapping).where(
-                                SyncMapping.provider_name == provider.name,
-                                SyncMapping.remote_id == remote_task.remote_id
-                            )
-                        ).first()
-                        
-                        # Normalize timestamps for comparison (strip timezone)
-                        remote_mod = remote_task.last_modified.replace(tzinfo=None) if remote_task.last_modified.tzinfo else remote_task.last_modified
-                        
-                        if mapping:
-                            local_task = session.get(Task, mapping.task_id)
-                            if local_task:
-                                local_mod = local_task.last_modified.replace(tzinfo=None) if local_task.last_modified.tzinfo else local_task.last_modified
-                                
-                                if remote_mod > local_mod:
-                                    local_task.title = remote_task.title
-                                    local_task.status = remote_task.status
-                                    local_task.list_name = remote_task.list_name
-                                    local_task.last_modified = remote_mod
-                                    session.add(local_task)
-                        else:
-                            new_task = Task(
-                                title=remote_task.title,
-                                status=remote_task.status,
-                                list_name=remote_task.list_name,
-                                last_modified=remote_mod
-                            )
-                            session.add(new_task)
-                            session.commit()
-                            session.refresh(new_task)
-                            
-                            new_mapping = SyncMapping(
-                                task_id=new_task.id,
-                                provider_name=provider.name,
-                                remote_id=remote_task.remote_id
-                            )
-                            session.add(new_mapping)
-                    session.commit()
-                
-                # Restore provider list if needed
-                if hasattr(provider, "_list_name"):
-                    provider._list_name = old_list
+    async def sync_all(self):
+        """Full synchronization across all providers with Account Prefixes."""
+        logger.info("Starting prefixed sync...")
         
-        # 2. Propagate local changes to other providers
-        self._propagate_to_remotes()
+        all_remote_display_names = set()
+        
+        async with AsyncSessionLocal() as session:
+            for provider in self.providers:
+                try:
+                    lists = await provider.get_lists()
+                    for l_name in lists:
+                        display_name = self._get_display_name(provider.account_label, l_name)
+                        all_remote_display_names.add(display_name)
+                        
+                        # Sync tasks for this specific account list
+                        remote_tasks = await provider.get_tasks(list_name=l_name)
+                        await self._update_local_db(provider.name, remote_tasks, display_name)
+                except Exception as e:
+                    logger.error(f"Error syncing {provider.name}: {e}")
 
-    def _propagate_to_remotes(self):
-        """Propagate tasks to providers that don't have them yet."""
-        with get_session() as session:
-            tasks = session.exec(select(Task)).all()
+            # Cleanup orphaned lists/tasks
+            local_lists_res = await session.execute(select(TaskList.name))
+            current_local_lists = set(local_lists_res.scalars().all())
+            
+            deleted_everywhere = current_local_lists - all_remote_display_names
+            for d_name in deleted_everywhere:
+                await session.execute(delete(Task).where(Task.list_name == d_name))
+                await session.execute(delete(TaskList).where(TaskList.name == d_name))
+
+            # Rebuild TaskList cache
+            await session.execute(delete(TaskList))
+            for name in sorted(all_remote_display_names):
+                session.add(TaskList(name=name, provider_name="multi"))
+            await session.commit()
+
+        await self._propagate()
+        logger.info("Sync complete.")
+
+    async def _update_local_db(self, provider_name: str, remote_tasks: List[Any], display_name: str):
+        now_utc = datetime.now(timezone.utc)
+        async with AsyncSessionLocal() as session:
+            mapping_stmt = select(SyncMapping).where(SyncMapping.provider_name == provider_name)
+            mapping_res = await session.execute(mapping_stmt)
+            existing_mappings = {m.remote_id: m for m in mapping_res.scalars().all()}
+            
+            seen_remote_ids = set()
+            for rt in remote_tasks:
+                seen_remote_ids.add(rt.remote_id)
+                mapping = existing_mappings.get(rt.remote_id)
+                rt_modified = rt.last_modified.replace(tzinfo=timezone.utc) if rt.last_modified.tzinfo is None else rt.last_modified
+                
+                if mapping:
+                    task = await session.get(Task, mapping.task_id)
+                    if task:
+                        task_modified = task.last_modified.replace(tzinfo=timezone.utc) if task.last_modified.tzinfo is None else task.last_modified
+                        if rt_modified > task_modified:
+                            task.status = rt.status
+                            task.title = rt.title
+                            task.last_modified = rt_modified
+                            task.list_name = display_name
+                            session.add(task)
+                        mapping.last_sync = now_utc
+                        session.add(mapping)
+                else:
+                    new_task = Task(
+                        title=rt.title, 
+                        status=rt.status, 
+                        list_name=display_name, 
+                        last_modified=rt_modified, 
+                        source_provider=provider_name
+                    )
+                    session.add(new_task)
+                    await session.flush()
+                    session.add(SyncMapping(task_id=new_task.id, provider_name=provider_name, remote_id=rt.remote_id, last_sync=now_utc))
+            
+            # Local deletions if gone from remote
+            deleted_ids = set(existing_mappings.keys()) - seen_remote_ids
+            for rid in deleted_ids:
+                mapping = existing_mappings[rid]
+                task = await session.get(Task, mapping.task_id)
+                if task:
+                    await session.delete(task)
+                await session.delete(mapping)
+            await session.commit()
+
+    async def _propagate(self):
+        """Propagate local changes back to remotes, stripping prefixes for API calls."""
+        now_utc = datetime.now(timezone.utc)
+        async with AsyncSessionLocal() as session:
+            result = await session.execute(select(Task))
+            tasks = result.scalars().all()
+            
             for task in tasks:
+                task_modified = task.last_modified.replace(tzinfo=timezone.utc) if task.last_modified.tzinfo is None else task.last_modified
+                
+                # Extract real list name by removing prefix like "[FH] "
+                real_list_name = task.list_name
+                if "]" in task.list_name:
+                    real_list_name = task.list_name.split("]", 1)[1].strip()
+
                 for provider in self.providers:
-                    mapping = session.exec(
-                        select(SyncMapping).where(
-                            SyncMapping.task_id == task.id,
-                            SyncMapping.provider_name == provider.name
-                        )
-                    ).first()
+                    # We only propagate to the provider that matches the prefix
+                    expected_prefix = f"[{provider.account_label}]"
+                    if not task.list_name.startswith(expected_prefix):
+                        continue
+
+                    map_res = await session.execute(select(SyncMapping).where(
+                        SyncMapping.task_id == task.id, 
+                        SyncMapping.provider_name == provider.name
+                    ))
+                    mapping = map_res.scalar_one_or_none()
                     
                     if not mapping:
                         try:
-                            remote_id = provider.create_task(task)
+                            remote_id = await provider.create_task(task.title, real_list_name)
                             if remote_id:
-                                new_mapping = SyncMapping(
-                                    task_id=task.id,
-                                    provider_name=provider.name,
-                                    remote_id=remote_id
-                                )
-                                session.add(new_mapping)
-                        except:
-                            pass
-            session.commit()
+                                session.add(SyncMapping(task_id=task.id, provider_name=provider.name, remote_id=remote_id, last_sync=now_utc))
+                                if task.status == "completed":
+                                    await provider.update_task(remote_id, status="completed")
+                        except Exception as e:
+                            logger.error(f"Failed creation propagate: {e}")
+                    else:
+                        last_sync = mapping.last_sync.replace(tzinfo=timezone.utc) if mapping.last_sync.tzinfo is None else mapping.last_sync
+                        if task_modified > last_sync:
+                            try:
+                                if await provider.update_task(mapping.remote_id, title=task.title, status=task.status):
+                                    mapping.last_sync = now_utc
+                                    session.add(mapping)
+                            except Exception as e:
+                                logger.error(f"Failed update propagate: {e}")
+            await session.commit()
+
+    async def delete_list(self, display_name: str):
+        """Deletes a list globally based on display name."""
+        real_list_name = display_name
+        if "]" in display_name:
+            real_list_name = display_name.split("]", 1)[1].strip()
+        
+        for provider in self.providers:
+            prefix = f"[{provider.account_label}]"
+            if display_name.startswith(prefix):
+                try:
+                    await provider.delete_list(real_list_name)
+                except Exception as e:
+                    logger.error(f"Failed to delete remote list: {e}")
+
+        async with AsyncSessionLocal() as session:
+            await session.execute(delete(Task).where(Task.list_name == display_name))
+            await session.execute(delete(TaskList).where(TaskList.name == display_name))
+            await session.commit()
+
+async def daemon_loop(engine: SyncEngine, interval: int = 300):
+    while True:
+        try:
+            await engine.sync_all()
+        except Exception as e:
+            logger.error(f"Daemon Sync Error: {e}")
+        await asyncio.sleep(interval)

@@ -6,8 +6,8 @@ authors = ["Your Name <you@example.com>"]
 
 [tool.poetry.dependencies]
 python = "^3.10"
-typer = {extras = ["all"], version = "^0.12.0"}
-sqlmodel = "^0.0.14"
+typer = {extras = ["all"], version = ">=0.15.0"}
+sqlmodel = ">=0.0.30"
 google-api-python-client = "^2.115.0"
 google-auth-oauthlib = "^1.2.0"
 msal = "^1.26.0"

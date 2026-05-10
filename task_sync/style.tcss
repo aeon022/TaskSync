@@ -1,0 +1,156 @@
+/* Catppuccin Mocha Palette - Elite Edition */
+$base: #1e1e2e;
+$mantle: #181825;
+$crust: #11111b;
+$text: #cdd6f4;
+$subtext0: #a6adc8;
+$surface0: #313244;
+$surface1: #45475a;
+$mauve: #cba6f7;
+$blue: #89b4fa;
+$green: #a6e3a1;
+$red: #f38ba8;
+$peach: #fab387;
+$yellow: #f9e2af;
+
+Screen {
+    background: $base;
+    color: $text;
+    layers: default overlay;
+}
+
+#header-stats {
+    height: 3;
+    background: $crust;
+    color: $mauve;
+    content-align: center middle;
+    border-bottom: hkey $surface0;
+    text-style: bold;
+}
+
+#app-grid {
+    layout: grid;
+    grid-size: 3;
+    grid-columns: 34 2fr 36;
+    height: 1fr;
+}
+
+/* Glass-Mantle Panels */
+#sidebar {
+    background: $mantle;
+    border-right: vkey $surface0;
+}
+
+#main-content {
+    background: $base;
+}
+
+#details-panel {
+    background: $mantle;
+    border-left: vkey $surface0;
+    padding: 1 2;
+}
+
+.panel-header {
+    background: $surface0;
+    color: $mauve;
+    text-style: bold;
+    padding: 0 1;
+    width: 100%;
+    margin-bottom: 1;
+}
+
+.hidden {
+    display: none;
+}
+
+#add-task-input {
+    margin: 0 1;
+    border: tall $mauve;
+    background: $surface0;
+}
+
+/* List Item High Fidelity */
+ListItem {
+    padding: 1 2;
+    background: transparent;
+    transition: background 200ms in_out_cubic;
+}
+
+ListItem.--highlight {
+    background: $mauve 15%;
+    color: $mauve;
+    text-style: bold italic;
+}
+
+ListItem.selected {
+    background: $mauve 10%;
+    border-left: thick $mauve;
+}
+
+/* Task Priority Indicators */
+.prio-high { color: $red; text-style: bold underline; }
+.prio-med { color: $peach; }
+.prio-low { color: $blue; }
+
+.completed-task {
+    color: $subtext0;
+    text-style: strike;
+    opacity: 0.5;
+}
+
+#list-tree {
+    background: transparent;
+    color: $text;
+    padding: 0 1;
+}
+
+#list-tree > .tree--root {
+    display: none;
+}
+
+Tree:focus {
+    border: none;
+}
+
+Tree .tree--guides {
+    color: $surface1;
+}
+
+/* Animated Command Bar with Glass-Morphism */
+#command-container {
+    dock: bottom;
+    layout: horizontal;
+    height: 1;
+    background: $mauve 90%;
+    color: $crust;
+    offset-y: 100%;
+    layer: overlay;
+    transition: offset 200ms in_out_cubic;
+}
+
+#command-container.visible {
+    offset-y: 0;
+}
+
+#command-prefix {
+    width: 5;
+    text-style: bold;
+    content-align: center middle;
+}
+
+#command-input {
+    width: 1fr;
+    background: $crust;
+    color: $text;
+    border: none;
+    padding: 0 1;
+}
+
+/* Sparkline Polish */
+Sparkline {
+    width: 20;
+    height: 1;
+    color: $green;
+    margin: 0 2;
+}

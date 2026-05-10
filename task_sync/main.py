@@ -1,211 +1,182 @@
 import typer
-import warnings
-import os
+import asyncio
+import sys
 from typing import Optional
-from sqlmodel import select
 
-# Suppress annoying Google API warnings
-warnings.filterwarnings("ignore", category=FutureWarning)
+app = typer.Typer(help="utask v2.0 - Headless Task Sync CLI")
 
-from .core import SyncEngine, get_session, init_db
-from .models import Task, SyncMapping
-from .providers.apple import AppleRemindersProvider
-from .providers.google import GoogleTasksProvider
-
-app = typer.Typer(
-    help="UniversalTask CLI - Sync tasks across Apple, Google, and Outlook.",
-    add_completion=False,
-    no_args_is_help=True
-)
-
-@app.callback()
-def callback():
-    """Initialize UniversalTask CLI."""
-    try:
-        init_db()
-    except Exception as e:
-        typer.secho(f"Database error: {e}", fg=typer.colors.RED, err=True)
-
-def get_engine(list_name: Optional[str] = None):
-    providers = []
+def get_engine():
+    from .core import SyncEngine
+    from .providers.apple import AppleRemindersProvider
+    from .providers.google import GoogleTasksProvider
+    from .providers.microsoft import MicrosoftToDoProvider
     
-    if os.uname().sysname == 'Darwin':
-        providers.append(AppleRemindersProvider(list_name=list_name))
-        
+    # In a real multi-account setup, we would load these from a config
+    # For now, we set the labels to distinguish them
+    apple = AppleRemindersProvider()
     google = GoogleTasksProvider()
-    if google.is_authenticated():
-        providers.append(google)
-        
-    return SyncEngine(providers)
+    ms_fh = MicrosoftToDoProvider()
+    ms_fh.account_label = "FH" # Override default MS label
+    
+    providers = [apple, google, ms_fh]
+    return SyncEngine(providers=providers)
 
 @app.command()
-def auth(provider: str = typer.Argument(..., help="Name of the provider (e.g. 'google')")):
-    """Authenticate with a remote provider."""
-    if provider.lower() == "google":
-        typer.echo("🔗 Opening browser for Google Tasks login...")
-        google = GoogleTasksProvider()
-        if google.run_login_flow():
-            typer.secho("✅ Google Tasks authentication successful!", fg=typer.colors.GREEN)
-        else:
-            typer.secho("❌ Authentication failed. Make sure 'credentials.json' is present for now.", fg=typer.colors.RED)
-    else:
-        typer.echo(f"Unknown provider: {provider}")
+def sync():
+    """Run a one-time full sync."""
+    from .core import init_db
+    engine = get_engine()
+    
+    async def run():
+        await init_db()
+        await engine.sync_all()
+    
+    asyncio.run(run())
+    typer.echo("Sync complete.")
 
 @app.command()
-def sync(list_name: Optional[str] = typer.Option(None, "--list", help="Name of the Apple Reminders list.")):
-    """Synchronize tasks across all enabled providers."""
-    typer.echo("🔄 Syncing tasks...")
+def daemon(interval: int = 300):
+    """Start the utaskd background daemon."""
+    from .core import init_db, daemon_loop
+    engine = get_engine()
+    
+    async def run():
+        await init_db()
+        typer.echo(f"Starting utaskd with {interval}s interval...")
+        await daemon_loop(engine, interval)
+    
     try:
-        engine = get_engine(list_name=list_name)
-        engine.sync()
-        typer.secho("✨ Sync complete!", fg=typer.colors.GREEN)
-    except Exception as e:
-        typer.secho(f"❌ Sync failed: {e}", fg=typer.colors.RED, err=True)
-
-@app.command()
-def list(all: bool = typer.Option(False, "--all", "-a", help="Show all tasks, including completed ones.")):
-    """List synchronized tasks (only pending by default)."""
-    with get_session() as session:
-        if all:
-            tasks = session.exec(select(Task)).all()
-        else:
-            tasks = session.exec(select(Task).where(Task.status == "needsAction")).all()
-            
-        if not tasks:
-            typer.echo("No pending tasks found. Use 'utask add' to create one or '--all' to see completed tasks.")
-            return
-            
-        typer.echo("\n📋 Your Tasks:")
-        for task in tasks:
-            status_icon = "✅" if task.status == "completed" else "⭕"
-            typer.echo(f"  {task.id}: {status_icon} {task.title}")
-        typer.echo("")
-
-@app.command()
-def complete(task_id: int):
-    """Check off (complete) a task on all providers."""
-    with get_session() as session:
-        task = session.get(Task, task_id)
-        if not task:
-            typer.secho(f"Task {task_id} not found.", fg=typer.colors.RED)
-            return
-        
-        task.status = "completed"
-        session.add(task)
-        
-        engine = get_engine()
-        # Update remotes
-        mappings = session.exec(select(SyncMapping).where(SyncMapping.task_id == task_id)).all()
-        for mapping in mappings:
-            for provider in engine.providers:
-                if provider.name == mapping.provider_name:
-                    provider.update_task(mapping.remote_id, task)
-        
-        session.commit()
-        typer.secho(f"✅ Completed task {task_id}: {task.title}", fg=typer.colors.GREEN)
-
-@app.command()
-def add(
-    title: str, 
-    list_name: Optional[str] = typer.Option(None, "--list", help="Name of the Apple Reminders list.")
-):
-    """Add a new task to all providers."""
-    with get_session() as session:
-        new_task = Task(title=title)
-        session.add(new_task)
-        session.commit()
-        session.refresh(new_task)
-        typer.secho(f"➕ Added task: {new_task.title}", fg=typer.colors.CYAN)
-        
-    sync(list_name=list_name)
-
-@app.command()
-def delete(task_id: int):
-    """Delete a task from all providers."""
-    with get_session() as session:
-        task = session.get(Task, task_id)
-        if not task:
-            typer.secho(f"Task {task_id} not found.", fg=typer.colors.RED)
-            return
-        
-        engine = get_engine()
-        # Find mappings to delete from remotes
-        mappings = session.exec(select(SyncMapping).where(SyncMapping.task_id == task_id)).all()
-        for mapping in mappings:
-            for provider in engine.providers:
-                if provider.name == mapping.provider_name:
-                    provider.delete_task(mapping.remote_id)
-            session.delete(mapping)
-        
-        session.delete(task)
-        session.commit()
-        typer.secho(f"🗑️ Deleted task {task_id}", fg=typer.colors.YELLOW)
-
-@app.command()
-def rename(task_id: int, new_title: str):
-    """Rename (update) a task title."""
-    with get_session() as session:
-        task = session.get(Task, task_id)
-        if not task:
-            typer.secho(f"Task {task_id} not found.", fg=typer.colors.RED)
-            return
-        
-        task.title = new_title
-        session.add(task)
-        
-        engine = get_engine()
-        # Update remotes
-        mappings = session.exec(select(SyncMapping).where(SyncMapping.task_id == task_id)).all()
-        for mapping in mappings:
-            for provider in engine.providers:
-                if provider.name == mapping.provider_name:
-                    provider.update_task(mapping.remote_id, task)
-        
-        session.commit()
-        typer.secho(f"📝 Renamed task {task_id} to: {new_title}", fg=typer.colors.CYAN)
-
-# List Management Commands
-list_app = typer.Typer(help="Manage task lists (Reminders lists, Google TaskLists).")
-app.add_typer(list_app, name="list-mgnt")
+        asyncio.run(run())
+    except KeyboardInterrupt:
+        typer.echo("Daemon stopped.")
 
 @app.command()
 def ui():
-    """Launch the interactive Terminal User Interface (TUI)."""
+    """Launch the TUI."""
     from .tui import UniversalTaskApp
-    app = UniversalTaskApp()
-    app.run()
+    UniversalTaskApp().run()
 
-@list_app.command("create")
-def create_list(name: str):
-    """Create a new task list on all providers."""
-    engine = get_engine()
-    for provider in engine.providers:
-        if provider.create_list(name):
-            typer.echo(f"✅ Created list '{name}' on {provider.name}")
+@app.command(name="list")
+def list_tasks():
+    """List local tasks from SQLite."""
+    from .core import AsyncSessionLocal
+    from .models import Task
+    from sqlmodel import select
+    
+    async def run():
+        async with AsyncSessionLocal() as session:
+            statement = select(Task)
+            result = await session.execute(statement)
+            tasks = result.scalars().all()
+            for t in tasks:
+                status = "✅" if t.status == "completed" else "◯"
+                typer.echo(f"{status} {t.title} ({t.list_name})")
+    
+    asyncio.run(run())
+
+@app.command()
+def add(title: str, list_name: str = "Reminders"):
+    """Add a new task with NLP date parsing (e.g. 'Meeting morgen 15:00')."""
+    from .core import AsyncSessionLocal, init_db
+    from .models import Task
+    import dateparser
+    from datetime import datetime, timezone
+    
+    # Simple NLP: Search for dates in the title
+    # For a real implementation, we'd extract the date part more carefully
+    # This is a robust baseline
+    parsed_date = dateparser.parse(title, settings={'PREFER_DATES_FROM': 'future'})
+    
+    async def run():
+        await init_db()
+        async with AsyncSessionLocal() as session:
+            new_task = Task(
+                title=title, 
+                list_name=list_name,
+                due_date=parsed_date.replace(tzinfo=timezone.utc) if parsed_date else None
+            )
+            session.add(new_task)
+            await session.commit()
+            typer.echo(f"✅ Added: {title} (Due: {parsed_date or 'No date'})")
+    
+    asyncio.run(run())
+
+@app.command()
+def export(format: str = "md"):
+    """Export all tasks to a file (default: markdown)."""
+    from .core import AsyncSessionLocal
+    from .models import Task
+    from sqlmodel import select
+    from pathlib import Path
+    
+    async def run():
+        async with AsyncSessionLocal() as session:
+            result = await session.execute(select(Task))
+            tasks = result.scalars().all()
+            
+            if format == "md":
+                output_path = Path.cwd() / "utask_export.md"
+                with open(output_path, "w") as f:
+                    f.write("# utask Export\n\n")
+                    # Group by list
+                    lists = sorted(set(t.list_name for t in tasks))
+                    for l_name in lists:
+                        f.write(f"## {l_name}\n")
+                        list_tasks = [t for t in tasks if t.list_name == l_name]
+                        for t in list_tasks:
+                            status = "x" if t.status == "completed" else " "
+                            f.write(f"- [{status}] {t.title}\n")
+                        f.write("\n")
+                typer.echo(f"🚀 Exported to {output_path}")
+
+    asyncio.run(run())
+
+@app.command()
+def auth_google(
+    client_id: Optional[str] = typer.Option(None, help="Google Client ID"),
+    client_secret: Optional[str] = typer.Option(None, help="Google Client Secret")
+):
+    """Start Google Tasks authorization flow (Paste JSON OR provide --client-id and --client-secret)."""
+    from .auth import auth_google as perform_auth
+    from .auth import auth_google_manual
+    
+    try:
+        if client_id and client_secret:
+            msg = auth_google_manual(client_id, client_secret)
         else:
-            typer.echo(f"❌ Failed to create list '{name}' on {provider.name}")
+            typer.echo("Bitte kopiere den INHALT der Google JSON-Datei (beginnend mit { ) hier hinein.")
+            typer.echo("Drücke danach STRG+D zum Speichern.")
+            json_data = sys.stdin.read().strip()
+            if not json_data:
+                typer.echo("Abbruch: Keine Daten empfangen.")
+                return
+            msg = perform_auth(json_data)
+        
+        typer.echo(f"✅ {msg}")
+    except Exception as e:
+        typer.echo(f"❌ Fehler: {e}")
+        typer.echo("\nPro-Tipp: Wenn du keine JSON-Datei hast, nutze:")
+        typer.echo("utask auth-google --client-id 'ID' --client-secret 'SECRET'")
 
-@list_app.command("delete")
-def delete_list(name: str):
-    """Delete a task list from all providers."""
-    if not typer.confirm(f"Are you sure you want to delete the list '{name}' and ALL its tasks?"):
+@app.command()
+def auth_microsoft(client_id: str, tenant_id: str = "common"):
+    """Save Microsoft App Registration ID."""
+    from .auth import auth_microsoft as perform_auth
+    msg = perform_auth(client_id, tenant_id)
+    typer.echo(f"✅ {msg}")
+
+@app.command()
+def logs(lines: int = 20):
+    """Display the last N lines of the daemon log."""
+    from .core import LOG_FILE
+    if not LOG_FILE.exists():
+        typer.echo("No log file found.")
         return
-    engine = get_engine()
-    for provider in engine.providers:
-        if provider.delete_list(name):
-            typer.echo(f"🗑️ Deleted list '{name}' from {provider.name}")
-        else:
-            typer.echo(f"❌ Failed to delete list '{name}' from {provider.name}")
-
-@list_app.command("rename")
-def rename_list(old_name: str, new_name: str):
-    """Rename a task list on all providers."""
-    engine = get_engine()
-    for provider in engine.providers:
-        if provider.rename_list(old_name, new_name):
-            typer.echo(f"📝 Renamed list '{old_name}' to '{new_name}' on {provider.name}")
-        else:
-            typer.echo(f"❌ Failed to rename list on {provider.name}")
+    
+    with open(LOG_FILE, "r") as f:
+        content = f.readlines()
+        for line in content[-lines:]:
+            typer.echo(line.strip())
 
 if __name__ == "__main__":
     app()

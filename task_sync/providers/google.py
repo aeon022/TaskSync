@@ -1,115 +1,188 @@
-import os.path
-import pickle
-from google.auth.transport.requests import Request
-from google_auth_oauthlib.flow import InstalledAppFlow
-from googleapiclient.discovery import build
+import asyncio
 from typing import List, Optional
 from datetime import datetime
+import logging
 from .base import RemoteTask, Provider
-from pathlib import Path
+from ..security import save_secret, load_secret
+from google.oauth2.credentials import Credentials
+from google_auth_oauthlib.flow import InstalledAppFlow
+from google.auth.transport.requests import Request
+from googleapiclient.discovery import build
+import json
+
+# Setup logger for provider
+logger = logging.getLogger("utaskd")
 
 SCOPES = ['https://www.googleapis.com/auth/tasks']
 
 class GoogleTasksProvider:
     name = "google"
+    account_label = "Google"
 
     def __init__(self):
-        config_dir = Path.home() / ".config" / "utask"
-        os.makedirs(config_dir, exist_ok=True)
-        self.token_path = str(config_dir / "google_token.pickle")
-        # Wir suchen die credentials.json NUR im Projektordner oder im Config-Ordner
-        self.creds_path = 'credentials.json'
-        if not os.path.exists(self.creds_path):
-            self.creds_path = str(config_dir / "credentials.json")
-            
-        self.service = self._authenticate()
+        self.creds = self._load_creds()
+        self.service = None
+        if self.creds:
+            self.service = build('tasks', 'v1', credentials=self.creds, static_discovery=False)
 
-    def _authenticate(self):
-        creds = None
-        if os.path.exists(self.token_path):
-            with open(self.token_path, 'rb') as token:
-                try: creds = pickle.load(token)
-                except: creds = None
-        
-        if not creds or not creds.valid:
-            if creds and creds.expired and creds.refresh_token:
-                try:
-                    creds.refresh(Request())
-                    with open(self.token_path, 'wb') as token:
-                        pickle.dump(creds, token)
-                except: return None
-            else: return None
+    def _load_creds(self) -> Optional[Credentials]:
+        token_data = load_secret("google", "token")
+        if token_data:
+            return Credentials.from_authorized_user_info(token_data, SCOPES)
+        return None
 
-        return build('tasks', 'v1', credentials=creds, static_discovery=False)
+    def _save_creds(self, creds: Credentials):
+        save_secret("google", "token", json.loads(creds.to_json()))
 
-    def is_authenticated(self) -> bool:
-        return self.service is not None
+    async def _refresh_if_needed(self):
+        if self.creds and self.creds.expired and self.creds.refresh_token:
+            logger.info("Refreshing Google OAuth token...")
+            await asyncio.to_thread(self.creds.refresh, Request())
+            self._save_creds(self.creds)
 
-    def run_login_flow(self):
-        """Startet den Browser-Login. Erfordert die credentials.json im Ordner."""
-        try:
-            if not os.path.exists(self.creds_path):
-                return "MISSING_FILE"
-
-            flow = InstalledAppFlow.from_client_secrets_file(self.creds_path, SCOPES)
-            creds = flow.run_local_server(port=0, title="UniversalTask Google Login")
-            
-            with open(self.token_path, 'wb') as token:
-                pickle.dump(creds, token)
-            
-            self.service = build('tasks', 'v1', credentials=creds, static_discovery=False)
-            return "SUCCESS"
-        except Exception as e:
-            print(f"Login Fehler: {e}")
-            return "ERROR"
-
-    def get_tasks(self) -> List[RemoteTask]:
+    async def get_tasks(self, list_name: Optional[str] = None) -> List[RemoteTask]:
         if not self.service: return []
+        await self._refresh_if_needed()
+        
+        list_id = "@default"
+        if list_name:
+            lists = await self.get_lists_raw()
+            target = next((l for l in lists if l['title'].lower() == list_name.lower()), None)
+            if target: 
+                list_id = target['id']
+            else:
+                logger.warning(f"Google Tasks: List '{list_name}' not found, falling back to @default")
+
         try:
-            results = self.service.tasks().list(tasklist='@default').execute()
+            results = await asyncio.to_thread(
+                self.service.tasks().list(tasklist=list_id, showCompleted=True, showHidden=True).execute
+            )
             items = results.get('items', [])
             return [RemoteTask(
                 remote_id=item['id'],
                 title=item['title'],
                 status=item['status'],
-                list_name='Google Tasks',
+                list_name=list_name or 'Google Tasks',
                 last_modified=datetime.fromisoformat(item['updated'].replace('Z', '+00:00'))
             ) for item in items]
-        except: return []
+        except Exception as e:
+            logger.error(f"Google Tasks Error fetching tasks: {e}")
+            return []
 
-    def create_task(self, task) -> str:
-        if not self.service: return ""
+    async def get_lists(self) -> List[str]:
+        lists = await self.get_lists_raw()
+        titles = [l['title'] for l in lists]
+        logger.info(f"Google Tasks: Found lists: {titles}")
+        return titles
+
+    async def get_lists_raw(self) -> List[dict]:
+        if not self.service: 
+            logger.error("Google Tasks: Service not initialized (No credentials?)")
+            return []
+        await self._refresh_if_needed()
         try:
-            result = self.service.tasks().insert(tasklist='@default', body={'title': task.title}).execute()
+            results = await asyncio.to_thread(self.service.tasklists().list().execute)
+            return results.get('items', [])
+        except Exception as e:
+            logger.error(f"Google Tasks: Error fetching raw lists: {e}")
+            return []
+
+    async def create_task(self, title: str, list_name: str) -> Optional[str]:
+        if not self.service: return None
+        await self._refresh_if_needed()
+        
+        lists = await self.get_lists_raw()
+        target = next((l for l in lists if l['title'].lower() == list_name.lower()), None)
+        list_id = target['id'] if target else "@default"
+        
+        try:
+            result = await asyncio.to_thread(
+                self.service.tasks().insert(tasklist=list_id, body={'title': title}).execute
+            )
             return result['id']
-        except: return ""
+        except Exception as e:
+            logger.error(f"Google Tasks: Error creating task: {e}")
+            return None
 
-    def update_task(self, remote_id: str, task) -> bool:
+    async def update_task(self, remote_id: str, title: Optional[str] = None, status: Optional[str] = None) -> bool:
         if not self.service: return False
+        await self._refresh_if_needed()
+        
+        lists = await self.get_lists_raw()
+        
+        body = {'id': remote_id}
+        if title: body['title'] = title
+        if status: 
+            # Google Tasks: 'completed' or 'needsAction'
+            body['status'] = status
+            if status == "completed":
+                # When completing, Google often expects a completed timestamp
+                body['completed'] = datetime.now(timezone.utc).isoformat().replace('+00:00', 'Z')
+            else:
+                body['completed'] = None # Re-open
+
+        for l in lists:
+            try:
+                result = await asyncio.to_thread(
+                    self.service.tasks().patch(tasklist=l['id'], task=remote_id, body=body).execute
+                )
+                logger.info(f"Google Tasks: Updated {remote_id} in list {l['id']}. Response Status: {result.get('status')}")
+                return True
+            except Exception as e:
+                # If the task isn't in this list, Google returns 404, we just continue searching
+                continue
+        logger.error(f"Google Tasks: Could not find task {remote_id} in any list to update status.")
+        return False
+
+    async def delete_task(self, remote_id: str) -> bool:
+        if not self.service: return False
+        await self._refresh_if_needed()
+        lists = await self.get_lists_raw()
+        for l in lists:
+            try:
+                await asyncio.to_thread(
+                    self.service.tasks().delete(tasklist=l['id'], task=remote_id).execute
+                )
+                return True
+            except:
+                continue
+        return False
+
+    async def create_list(self, name: str) -> bool:
+        if not self.service: return False
+        await self._refresh_if_needed()
         try:
-            self.service.tasks().update(tasklist='@default', task=remote_id, body={
-                'id': remote_id, 'title': task.title, 'status': task.status
-            }).execute()
+            logger.info(f"Google Tasks: Creating new list '{name}'")
+            await asyncio.to_thread(
+                self.service.tasklists().insert(body={'title': name}).execute
+            )
+            return True
+        except Exception as e:
+            logger.error(f"Google Tasks: Failed to create list '{name}': {e}")
+            return False
+
+    async def rename_list(self, old_name: str, new_name: str) -> bool:
+        if not self.service: return False
+        await self._refresh_if_needed()
+        lists = await self.get_lists_raw()
+        target = next((l for l in lists if l['title'] == old_name), None)
+        if not target: return False
+        try:
+            await asyncio.to_thread(
+                self.service.tasklists().patch(tasklist=target['id'], body={'title': new_name}).execute
+            )
             return True
         except: return False
 
-    def delete_task(self, remote_id: str) -> bool:
+    async def delete_list(self, name: str) -> bool:
         if not self.service: return False
+        await self._refresh_if_needed()
+        lists = await self.get_lists_raw()
+        target = next((l for l in lists if l['title'] == name), None)
+        if not target: return False
         try:
-            self.service.tasks().delete(tasklist='@default', task=remote_id).execute()
-            return True
-        except: return False
-
-    def get_lists(self) -> List[str]:
-        if not self.service: return []
-        try:
-            results = self.service.tasklists().list().execute()
-            return [l['title'] for l in results.get('items', [])]
-        except: return []
-
-    def create_list(self, name: str) -> bool:
-        if not self.service: return False
-        try:
-            self.service.tasklists().insert(body={'title': name}).execute()
+            await asyncio.to_thread(
+                self.service.tasklists().delete(tasklist=target['id']).execute
+            )
             return True
         except: return False
