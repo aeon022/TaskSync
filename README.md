@@ -1,112 +1,89 @@
-# 🎯 UniversalTask CLI (`utask`)
+# 🚀 UniversalTask (utask) v2.0 - Elite Edition
 
-`utask` ist ein leistungsstarkes und dennoch einfaches Kommandozeilen-Tool (CLI), mit dem du deine Aufgaben und Erinnerungen nahtlos zwischen **Apple Reminders**, **Google Tasks** und deinem lokalen Terminal synchronisieren kannst.
-
-Das Tool bietet sowohl eine schnelle Befehlszeile als auch ein **interaktives Terminal-Interface (TUI)** für flüssiges Arbeiten ohne Latenz.
+`utask` ist eine hochperformante, asynchrone CLI & TUI App zur Synchronisation von Aufgaben zwischen **Apple Reminders**, **Google Tasks** und **Microsoft To Do (FH Burgenland)**.
 
 ---
 
-## 📖 Inhaltsverzeichnis
-1. [Installation](#-installation)
-2. [Das interaktive Interface (UI)](#-das-interaktive-terminal-interface-ui)
-3. [💡 Hilfe-Navigation](#-hilfe-navigation)
-4. [⌨️ Steuerung & Shortcuts](#-steuerung--shortcuts)
-5. [⚡ Vi-Kommandozeile (Pro-Modus)](#-vi-kommandozeile-pro-modus)
-6. [🔄 Synchronisierung & Cloud-Setup](#-synchronisierung--cloud-setup)
-7. [🚀 Schnelle Befehle (CLI-Modus)](#-schnelle-befehle-cli-modus)
+## 🛠️ Installation & Setup
 
----
-
-## 🛠️ Installation
-
-Stelle sicher, dass Python 3.10 oder höher installiert ist.
-
+### 1. Gnadenloses Setup
+Nach dem Klonen des Repos einfach das Setup-Skript ausführen. Es bereinigt alte Umgebungen und installiert alle Abhängigkeiten (Python 3.10+ erforderlich).
 ```bash
-cd TaskSync
-pip install -e .
+./setup.sh
 ```
 
+### 2. Globaler Befehl
+Das Setup erstellt einen Wrapper in `~/.local/bin/utask`. Stelle sicher, dass dieser Pfad in deinem `$PATH` ist.
+
 ---
 
-## 🖥️ Das interaktive Terminal-Interface (UI)
+## 🛰️ Hintergrund-Daemon (`utaskd`)
 
-Der UI-Modus ist auf maximale Geschwindigkeit optimiert. Alle Änderungen werden **sofort** lokal angezeigt, während der Sync unsichtbar im Hintergrund läuft.
+utask v2.0 läuft "Headless". Du musst dich nicht um den Sync kümmern.
+
+*   **`utask daemon-start`**: Installiert utask als macOS `LaunchAgent`. Der Sync läuft ab jetzt alle 5 Minuten vollautomatisch im Hintergrund.
+*   **`utask daemon-stop`**: Stoppt den Hintergrunddienst und entfernt ihn aus dem System.
+*   **`utask logs`**: Zeigt die letzten Aktivitäten und den Status des Hintergrund-Syncs an.
+
+---
+
+## ⌨️ TUI Steuerung (Elite Interface)
+
+Starte das Interface mit: `utask ui`
+
+### Navigation & Listen
+*   **Sidebar (Links)**: Listen sind nach Provider (Apple, FH, Google) gruppiert.
+*   **`j` / `k` oder Pfeiltasten**: Durch den Baum navigieren.
+*   **`ENTER`**: Liste auswählen und Aufgaben laden.
+*   **`TAB`**: Wechseln zwischen Sidebar, Aufgabenliste und Details.
+
+### Aufgaben-Aktionen
+*   **`SPACE`**: Aufgabe erledigen / wieder öffnen (triggert sofortigen Sync-Zeitstempel).
+*   **`a`**: Schnelles Hinzufügen einer neuen Aufgabe.
+*   **`d`**: Markierte Aufgabe löschen.
+*   **`u`**: Letzte Löschung rückgängig machen (Undo-Stack).
+*   **`v`**: Visual Mode (Mehrere Aufgaben markieren).
+
+### Befehlszeile (`:`) & Suche (`/`)
+*   **`:`**: Befehlsmodus öffnen.
+    *   `:sync` - Sofortigen manuellen Sync erzwingen.
+    *   `:h` oder `:hide` - Erledigte Aufgaben verstecken/zeigen.
+    *   `:delete list "Name"` - Eine komplette Liste überall (Remote & Lokal) löschen.
+    *   `:q` - App beenden.
+*   **`/`**: Schnellsuche (Fuzzy-Filter für die aktuelle Liste).
+*   **`?`**: Dieses Handbuch öffnen.
+*   **`ESC`**: Abbrechen / Zurück.
+
+---
+
+## ⚡ Natural Language Parsing (NLP)
+
+Du kannst Aufgaben direkt aus dem Terminal mit menschlicher Sprache hinzufügen:
 
 ```bash
-utask ui
+utask add "Meeting mit Projektgruppe nächsten Dienstag 14:00"
 ```
 
----
-
-## 💡 Hilfe-Navigation
-Befehl **`:help`** innerhalb der App:
-- **Tab:** Wechselt zwischen Inhaltsverzeichnis (links) und Text (rechts).
-- **Pfeiltasten (↑/↓):** Navigiert durch die Auswahl oder den Text.
-- **Enter:** Springt im Text zum ausgewählten Abschnitt.
-- **j / k:** Scrollt den Text zeilenweise.
-- **Bild-Auf / Bild-Ab:** Scrollt den Text seitenweise.
-- **Esc / q:** Schließt die Hilfe.
+*   **Intelligenz**: Erkennt automatisch Daten wie "morgen", "nächsten Freitag", "in 2 weeks".
+*   **Listen-Zuordnung**: Nutze `--list-name "Privat"`, um die Aufgabe direkt in eine spezifische Liste zu schieben.
 
 ---
 
-## ⌨️ Steuerung & Shortcuts
-- **Navigation:** `j` / `k` (oder Pfeiltasten) zum Scrollen.
-- **Listenwechsel:** `Tab`, um zwischen Listen (links) und Aufgaben (rechts) zu wechseln.
-- **Abhaken:** `Leertaste (Space)`, um eine Aufgabe zu erledigen.
-- **Hinzufügen:** `a` (Add) drücken und Titel eintippen.
-- **Umbenennen:** `r` (Rename) drücken.
-- **Löschen:** `d` (Delete) drücken.
-- **Suchen:** `/` (Search) filtert die Liste live.
-- **Synchronisieren:** `s` (Sync) stößt manuellen Abgleich an.
-- **Beenden:** `q` (Quit).
+## 📈 Produktivitäts-Tracking
+
+Im Header des TUI siehst du eine **Echtzeit-Sparkline**.
+*   Jeder Balken repräsentiert einen der letzten 10 Tage.
+*   Die Höhe zeigt die Anzahl der an diesem Tag erledigten Aufgaben.
+*   Daten kommen direkt aus der lokalen SQLite "Single Source of Truth".
 
 ---
 
-## ⚡ Vi-Kommandozeile (Pro-Modus)
-Drücke **`:`**, um Befehle einzugeben:
-- **`:create list "Name"`**: Erstellt eine neue Liste.
-- **`:delete list "Name"`**: Löscht eine Liste.
-- **`:sort alpha`** | **`:sort status`**: Ändert die Sortierung.
-- **`:auth google`**: Startet die Google Tasks Einrichtung.
-- **`:help`**: Öffnet diese Dokumentation.
-- **`:q`**: Beendet das Programm.
+## 🔐 Security
+
+*   **Keine Passwörter in Plaintext**: Alle Tokens (Google/Microsoft) werden sicher im **macOS Schlüsselbund (Keyring)** gespeichert.
+*   **OAuth2**: Nutzt moderne Authentifizierungs-Flows für maximale Sicherheit.
 
 ---
 
-## 🔄 Synchronisierung & Cloud-Setup
-
-### Apple Reminders (macOS)
-Erfordert keine Einrichtung. Bestätige beim ersten Start einfach den macOS-Zugriffsdialog.
-
-### Google Tasks (3-Minuten Einrichtung)
-Google hat das Interface auf die **Google Auth Platform** aktualisiert. Folge diesen Schritten:
-
-1. **Projekt:** Gehe zur [Google Cloud Console](https://console.cloud.google.com/). Klicke oben auf "New Project" (z.B. "utask-sync").
-2. **API:** Suche oben nach **"Google Tasks API"** und klicke auf **Enable**.
-3. **Google Auth Platform (Einrichtung):**
-   - Gehe links zu **APIs & Services** -> **Google Auth Platform**.
-   - **Branding:** Klicke "Get Started". Gib App-Namen und deine E-Mail an. "Save".
-   - **Audience:** Wähle **External**. Scrolle zu **Test users** -> **+ ADD USERS** und füge deine E-Mail (`gerwin.weiher@gmail.com`) hinzu. **WICHTIG:** Ohne diesen Schritt kommt Fehler 403!
-   - **Data Access:** Klicke "Add Scopes" -> Suche nach `tasks` -> Wähle `.../auth/tasks` -> "Save".
-4. **Anmeldedaten:**
-   - Gehe links zu **Credentials** -> **+ Create Credentials** -> **OAuth client ID**.
-   - Application type: **Desktop app**. Name: "utask" -> "Create".
-   - Klicke im Fenster auf **DOWNLOAD JSON**.
-5. **Aktivierung:**
-   - Gib in der App **`:auth google`** ein.
-   - Kopiere den Text aus der JSON-Datei hinein und drücke **STRG+S**. 
-   - Der Browser öffnet sich zum Login. Fertig!
-
-### Microsoft To Do (2-Minuten Einrichtung)
-1. Gehe zum [Azure Portal](https://portal.azure.com/).
-2. Suche oben in der Leiste nach **"App-Registrierungen"** (App registrations).
-3. Klicke auf **+ Neue Registrierung**. Name: "utask-cli".
-4. Wähle: **"Konten in einem beliebigen Organisationsverzeichnis und persönliche Microsoft-Konten"** (Multitenant).
-5. Klicke auf **Registrieren**.
-6. Kopiere die **Anwendungs-ID (Client)**.
-7. Gib in der App **`:auth microsoft`** ein, füge die ID ein und folge den Anweisungen.
-
----
-
-## 📱 Mobile Nutzung
-Änderungen werden sofort mit deinem iPhone oder Android-Handy synchronisiert.
+## 📜 System-Mantra
+"Nice Data, No bloat, System-Integrity."
