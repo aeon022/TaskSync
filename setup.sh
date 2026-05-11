@@ -43,10 +43,10 @@ echo "📦 Installing core dependencies and utask in editable mode..."
 
 # 5. Verify Installation
 echo "🔍 Verifying critical modules..."
-if ! ./.venv/bin/python3 -c "import aiosqlite, textual, sqlmodel, EventKit" &> /dev/null; then
+if ! ./.venv/bin/python3 -c "import aiosqlite, textual, sqlmodel, EventKit, greenlet" &> /dev/null; then
     echo "⚠️ Warning: Some critical modules failed to verify."
     echo "Checking individual components..."
-    ./.venv/bin/pip install --no-cache-dir aiosqlite textual sqlmodel pyobjc-framework-EventKit --quiet
+    ./.venv/bin/pip install --no-cache-dir aiosqlite textual sqlmodel pyobjc-framework-EventKit greenlet --quiet
 fi
 
 # 6. Create Global Wrapper
