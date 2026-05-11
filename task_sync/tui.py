@@ -18,8 +18,6 @@ from .models import Task, TaskList
 
 class HelpScreen(ModalScreen):
     """Displays the README.md content as a help manual."""
-    # NO BINDINGS here - we use on_key for absolute capture
-
     def compose(self) -> ComposeResult:
         base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
         readme_path = os.path.join(base_dir, "README.md")
@@ -37,11 +35,9 @@ class HelpScreen(ModalScreen):
                 yield Markdown(content, id="help-markdown")
 
     def on_mount(self) -> None:
-        # Focus the markdown so it can be scrolled immediately
         self.query_one("#help-markdown").focus()
 
     def on_key(self, event) -> None:
-        # ABSOLUTE CAPTURE for exit keys
         if event.key in ("escape", "q"):
             event.stop()
             self.dismiss()
@@ -67,11 +63,15 @@ class UniversalTaskApp(App):
     CSS_PATH = "style.tcss"
     
     BINDINGS = [
-        Binding("q", "quit", "Exit"), # NO priority=True
+        Binding("q", "quit", "Exit"),
         Binding("j", "cursor_down", "Down", show=False),
         Binding("k", "cursor_up", "Up", show=False),
+        Binding("g,g", "scroll_top", "Top", show=False),
+        Binding("G", "scroll_bottom", "Bottom", show=False),
         Binding("space", "toggle_complete", "Check"),
+        Binding("x", "toggle_complete", "Check", show=False),
         Binding("v", "toggle_visual", "Visual"),
+        Binding("d,d", "delete_task", "Delete", show=False),
         Binding("d", "delete_task", "Delete"),
         Binding("u", "undo", "Undo"),
         Binding("a", "focus_add", "Add"),
@@ -81,12 +81,13 @@ class UniversalTaskApp(App):
         Binding(":", "focus_command", "Command", show=False),
         Binding("s", "sync_now", "Sync"),
         Binding("question_mark", "show_help", "Help"),
-        Binding("escape", "cancel_input", "Cancel", show=False), # NO priority=True
+        Binding("escape", "cancel_input", "Cancel", show=False),
     ]
 
     current_list = reactive("Reminders")
     show_completed = reactive(True)
     visual_mode = reactive(False)
+    search_filter = reactive("")
     selected_ids: reactive[Set[int]] = reactive(set())
     undo_stack: List[tuple] = []
     is_syncing = reactive(False)
@@ -94,7 +95,7 @@ class UniversalTaskApp(App):
     def compose(self) -> ComposeResult:
         with Horizontal(id="header-stats"):
             yield Static("🚀 utask v2.0  •  ", id="header-title")
-            yield Sparkline([random.randint(0, 10) for _ in range(20)], summary_function=max)
+            yield Sparkline([0]*20, summary_function=max)
             yield Static("  •  [ 🟢 ONLINE ]", id="header-status")
         
         with Horizontal(id="app-grid"):
@@ -102,7 +103,8 @@ class UniversalTaskApp(App):
                 yield Label(" 📂   LISTS ", classes="panel-header")
                 yield Tree("📂 MY LISTS", id="list-tree")
             with Vertical(id="main-content"):
-                yield Label(f" 📝   TASKS ({self.current_list}) ", id="task-list-header", classes="panel-header")
+                yield Label(f" 📝   TASKS ", id="task-list-header", classes="panel-header")
+                yield Input(placeholder="Search... (ESC to clear)", id="search-input", classes="hidden")
                 yield Input(placeholder="Add Task... (Enter to save)", id="add-task-input", classes="hidden")
                 yield ListView(id="task-list")
             with Vertical(id="details-panel"):
@@ -118,8 +120,6 @@ class UniversalTaskApp(App):
     async def on_mount(self) -> None:
         await init_db()
         await self.refresh_lists()
-        
-        # Select first list if needed
         tree = self.query_one("#list-tree", Tree)
         if tree.root.children:
             first_account = tree.root.children[0]
@@ -127,22 +127,16 @@ class UniversalTaskApp(App):
                 first_list = first_account.children[0]
                 self.current_list = first_list.data
                 tree.select_node(first_list)
-        
         await self.refresh_tasks()
         await self.update_sparkline()
-        
-        # Set focus to the sidebar tree explicitly after a tiny delay
         self.set_timer(0.1, tree.focus)
 
     async def update_sparkline(self) -> None:
-        """Fetch completed tasks count for the last 10 days for the productivity sparkline."""
         from datetime import timedelta
         async with AsyncSessionLocal() as session:
             data = []
             for i in range(10, -1, -1):
                 day = datetime.now(timezone.utc).date() - timedelta(days=i)
-                # Count tasks where status is completed and last_modified is on that day
-                # (Simplification: using last_modified as completion date if status is completed)
                 stmt = select(Task).where(
                     Task.status == "completed",
                     Task.last_modified >= datetime.combine(day, datetime.min.time(), tzinfo=timezone.utc),
@@ -150,9 +144,7 @@ class UniversalTaskApp(App):
                 )
                 res = await session.execute(stmt)
                 data.append(len(res.scalars().all()))
-            
-            for spark in self.query(Sparkline):
-                spark.data = data
+            for spark in self.query(Sparkline): spark.data = data
 
     def watch_is_syncing(self, value: bool) -> None:
         for header in self.query("#header-status"):
@@ -172,8 +164,7 @@ class UniversalTaskApp(App):
                         prefix, name = full_name.split("]", 1)
                         prefix = prefix[1:].strip()
                         name = name.strip()
-                    else:
-                        prefix, name = "Local", full_name
+                    else: prefix, name = "Local", full_name
                     if prefix not in groups: groups[prefix] = []
                     groups[prefix].append((full_name, name))
                 for prefix, items in groups.items():
@@ -195,11 +186,16 @@ class UniversalTaskApp(App):
                     statement = statement.where(Task.status != "completed")
                 result = await session.execute(statement)
                 tasks = result.scalars().all()
+                # Apply search filter
+                if self.search_filter:
+                    tasks = [t for t in tasks if self.search_filter.lower() in t.title.lower()]
                 tasks.sort(key=lambda t: (t.status == "completed", t.title.lower()))
-                for t in tasks:
-                    view.append(TaskItem(t))
+                for t in tasks: view.append(TaskItem(t))
             for header in self.query("#task-list-header"):
-                header.update(f" 📝   TASKS ({self.current_list}) {'[HIDDEN DONE]' if not self.show_completed else ''} ")
+                label = f" 📝   TASKS ({self.current_list})"
+                if self.search_filter: label += f" [🔍 {self.search_filter}]"
+                if not self.show_completed: label += " [HIDDEN DONE]"
+                header.update(label)
 
     async def on_list_view_selected(self, event: ListView.Selected) -> None:
         if event.list_view.id == "task-list":
@@ -216,30 +212,34 @@ class UniversalTaskApp(App):
                            f"Source:   [mauve]{task.source_provider or 'Local'}[/]\n\n"
                            f"--- Notes ---\n"
                            f"{task.description or '[Empty]'}")
-                for detail in self.query("#details-content"):
-                    detail.update(content)
+                for detail in self.query("#details-content"): detail.update(content)
 
     def action_focus_command(self) -> None:
         for container in self.query("#command-container"):
             container.add_class("visible")
         for cmd_input in self.query("#command-input"):
-            cmd_input.value = ""
-            cmd_input.focus()
+            cmd_input.value = ""; cmd_input.focus()
 
     async def action_toggle_complete(self) -> None:
         for view in self.query("#task-list"):
             if view.index is not None:
-                old_index = view.index
-                item = view.children[view.index]
+                old_index = view.index; item = view.children[view.index]
                 async with AsyncSessionLocal() as session:
                     task = await session.get(Task, item.task_id)
                     if task:
                         task.status = "completed" if task.status != "completed" else "needsAction"
                         task.last_modified = datetime.now(timezone.utc)
-                        session.add(task)
-                        await session.commit()
+                        session.add(task); await session.commit()
                 await self.refresh_tasks()
                 view.index = min(old_index, len(view.children)-1) if view.children else None
+
+    def action_scroll_top(self) -> None:
+        for view in self.query("#task-list"):
+            if view.children: view.index = 0
+
+    def action_scroll_bottom(self) -> None:
+        for view in self.query("#task-list"):
+            if view.children: view.index = len(view.children) - 1
 
     def action_toggle_visual(self) -> None:
         self.visual_mode = not self.visual_mode
@@ -255,31 +255,25 @@ class UniversalTaskApp(App):
                     if task:
                         task_data = {c.name: getattr(task, c.name) for c in task.__table__.columns}
                         self.undo_stack.append(("delete", task_data))
-                        await session.delete(task)
-                        await session.commit()
+                        await session.delete(task); await session.commit()
                 await self.refresh_tasks()
 
     async def action_undo(self) -> None:
         if not self.undo_stack:
-            self.notify("Nothing to undo")
-            return
+            self.notify("Nothing to undo"); return
         action, data = self.undo_stack.pop()
         if action == "delete":
             async with AsyncSessionLocal() as session:
-                session.add(Task(**data))
-                await session.commit()
-            await self.refresh_tasks()
-            self.notify("Restored task")
+                session.add(Task(**data)); await session.commit()
+            await self.refresh_tasks(); self.notify("Restored task")
 
     def action_focus_add(self) -> None:
         for inp in self.query("#add-task-input"):
-            inp.remove_class("hidden")
-            inp.focus()
+            inp.remove_class("hidden"); inp.focus()
 
     def action_focus_search(self) -> None:
-        self.action_focus_command()
-        for cmd_input in self.query("#command-input"):
-            cmd_input.value = "/"
+        for inp in self.query("#search-input"):
+            inp.remove_class("hidden"); inp.focus()
 
     async def action_toggle_completed_visibility(self) -> None:
         self.show_completed = not self.show_completed
@@ -290,19 +284,20 @@ class UniversalTaskApp(App):
         from .main import get_engine
         await get_engine().sync_all()
         self.is_syncing = False
-        await self.refresh_lists()
-        await self.refresh_tasks()
-        self.notify("Sync completed")
+        await self.refresh_lists(); await self.refresh_tasks(); self.notify("Sync completed")
 
     def action_show_help(self) -> None:
-        self.push_screen(HelpScreen())
+        if not isinstance(self.screen, HelpScreen): self.push_screen(HelpScreen())
+
+    def on_input_changed(self, event: Input.Changed) -> None:
+        if event.input.id == "search-input":
+            self.search_filter = event.value.strip()
+            self.run_worker(self.refresh_tasks())
 
     async def on_input_submitted(self, event: Input.Submitted) -> None:
         if event.input.id == "command-input":
-            raw_cmd = event.value.strip()
-            cmd = raw_cmd.lower()
-            for container in self.query("#command-container"):
-                container.remove_class("visible")
+            raw_cmd = event.value.strip(); cmd = raw_cmd.lower()
+            for container in self.query("#command-container"): container.remove_class("visible")
             if cmd in ("q", "quit"): self.exit()
             elif cmd in ("help", "?"): self.push_screen(HelpScreen())
             elif cmd in ("h", "hide", "show"): await self.action_toggle_completed_visibility()
@@ -317,9 +312,10 @@ class UniversalTaskApp(App):
                 async with AsyncSessionLocal() as session:
                     session.add(Task(title=title, list_name=self.current_list))
                     await session.commit()
-                event.input.value = ""
-                event.input.add_class("hidden")
+                event.input.value = ""; event.input.add_class("hidden")
                 await self.refresh_tasks()
+        elif event.input.id == "search-input":
+            event.input.add_class("hidden")
         for tree in self.query("#list-tree"): tree.focus()
 
     async def action_delete_list(self, list_name: str) -> None:
@@ -327,13 +323,15 @@ class UniversalTaskApp(App):
         from .main import get_engine
         await get_engine().delete_list(list_name)
         if self.current_list == list_name: self.current_list = "Reminders"
-        await self.refresh_lists()
-        await self.refresh_tasks()
-        self.notify(f"Deleted list: {list_name}")
+        await self.refresh_lists(); await self.refresh_tasks(); self.notify(f"Deleted list: {list_name}")
 
     def action_cancel_input(self) -> None:
         for container in self.query("#command-container"): container.remove_class("visible")
         for inp in self.query("#add-task-input"): inp.add_class("hidden")
+        for inp in self.query("#search-input"):
+            inp.add_class("hidden")
+            if self.search_filter:
+                self.search_filter = ""; inp.value = ""; self.run_worker(self.refresh_tasks())
         for tree in self.query("#list-tree"): tree.focus()
 
     def action_cursor_down(self) -> None:

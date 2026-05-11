@@ -37,16 +37,16 @@ python3 -m venv .venv
 
 # 4. Install Dependencies
 echo "📦 Installing core dependencies and utask in editable mode..."
-./.venv/bin/pip install --upgrade pip setuptools wheel --quiet
+./.venv/bin/pip install --no-cache-dir --upgrade pip setuptools wheel --quiet
 # Install using pyproject.toml
-./.venv/bin/pip install -e . --quiet
+./.venv/bin/pip install --no-cache-dir -e . --quiet
 
 # 5. Verify Installation
 echo "🔍 Verifying critical modules..."
 if ! ./.venv/bin/python3 -c "import aiosqlite, textual, sqlmodel, EventKit" &> /dev/null; then
     echo "⚠️ Warning: Some critical modules failed to verify."
     echo "Checking individual components..."
-    ./.venv/bin/pip install aiosqlite textual sqlmodel pyobjc-framework-EventKit --quiet
+    ./.venv/bin/pip install --no-cache-dir aiosqlite textual sqlmodel pyobjc-framework-EventKit --quiet
 fi
 
 # 6. Create Global Wrapper
