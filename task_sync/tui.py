@@ -118,6 +118,8 @@ class UniversalTaskApp(App):
     async def on_mount(self) -> None:
         await init_db()
         await self.refresh_lists()
+        
+        # Select first list if needed
         tree = self.query_one("#list-tree", Tree)
         if tree.root.children:
             first_account = tree.root.children[0]
@@ -125,8 +127,32 @@ class UniversalTaskApp(App):
                 first_list = first_account.children[0]
                 self.current_list = first_list.data
                 tree.select_node(first_list)
+        
         await self.refresh_tasks()
+        await self.update_sparkline()
+        
+        # Set focus to the sidebar tree explicitly after a tiny delay
         self.set_timer(0.1, tree.focus)
+
+    async def update_sparkline(self) -> None:
+        """Fetch completed tasks count for the last 10 days for the productivity sparkline."""
+        from datetime import timedelta
+        async with AsyncSessionLocal() as session:
+            data = []
+            for i in range(10, -1, -1):
+                day = datetime.now(timezone.utc).date() - timedelta(days=i)
+                # Count tasks where status is completed and last_modified is on that day
+                # (Simplification: using last_modified as completion date if status is completed)
+                stmt = select(Task).where(
+                    Task.status == "completed",
+                    Task.last_modified >= datetime.combine(day, datetime.min.time(), tzinfo=timezone.utc),
+                    Task.last_modified <= datetime.combine(day, datetime.max.time(), tzinfo=timezone.utc)
+                )
+                res = await session.execute(stmt)
+                data.append(len(res.scalars().all()))
+            
+            for spark in self.query(Sparkline):
+                spark.data = data
 
     def watch_is_syncing(self, value: bool) -> None:
         for header in self.query("#header-status"):

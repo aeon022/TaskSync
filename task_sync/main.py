@@ -36,19 +36,48 @@ def sync():
 
 @app.command()
 def daemon(interval: int = 300):
-    """Start the utaskd background daemon."""
-    from .core import init_db, daemon_loop
+    """Start the utaskd sync daemon (active process)."""
+    from .core import init_db
+    from .daemon import daemon_loop
     engine = get_engine()
     
     async def run():
         await init_db()
-        typer.echo(f"Starting utaskd with {interval}s interval...")
         await daemon_loop(engine, interval)
     
     try:
         asyncio.run(run())
     except KeyboardInterrupt:
         typer.echo("Daemon stopped.")
+
+@app.command()
+def daemon_start():
+    """Install and start the background daemon as a macOS service."""
+    from .daemon import install_daemon
+    import subprocess
+    
+    plist_path = install_daemon()
+    try:
+        subprocess.run(["launchctl", "unload", plist_path], capture_output=True)
+        subprocess.run(["launchctl", "load", plist_path], check=True)
+        typer.echo(f"✅ Daemon installed and started: {plist_path}")
+    except Exception as e:
+        typer.echo(f"❌ Failed to start daemon: {e}")
+
+@app.command()
+def daemon_stop():
+    """Stop and uninstall the background daemon."""
+    import os
+    from pathlib import Path
+    import subprocess
+    
+    plist_path = Path.home() / "Library" / "LaunchAgents" / "com.aeon022.utaskd.plist"
+    if plist_path.exists():
+        subprocess.run(["launchctl", "unload", str(plist_path)], capture_output=True)
+        os.remove(plist_path)
+        typer.echo("✅ Daemon stopped and service removed.")
+    else:
+        typer.echo("⚠️ No daemon service found.")
 
 @app.command()
 def ui():
@@ -75,29 +104,48 @@ def list_tasks():
     asyncio.run(run())
 
 @app.command()
-def add(title: str, list_name: str = "Reminders"):
+def add(title: str, list_name: str = "Apple"):
     """Add a new task with NLP date parsing (e.g. 'Meeting morgen 15:00')."""
-    from .core import AsyncSessionLocal, init_db
+    from .core import AsyncSessionLocal, init_db, TaskList
     from .models import Task
     import dateparser
     from datetime import datetime, timezone
+    from sqlmodel import select
+
+    # NLP: Extract date using dateparser
+    # We use a base date of now and prefer future dates
+    parsed_date = dateparser.parse(
+        title, 
+        settings={'PREFER_DATES_FROM': 'future', 'RETURN_AS_TIMEZONE_AWARE': True}
+    )
     
-    # Simple NLP: Search for dates in the title
-    # For a real implementation, we'd extract the date part more carefully
-    # This is a robust baseline
-    parsed_date = dateparser.parse(title, settings={'PREFER_DATES_FROM': 'future'})
+    # If a date was found, we might want to strip it from the title for a cleaner look
+    # For now, we keep it simple and just use the parsed date as due_date
     
     async def run():
         await init_db()
         async with AsyncSessionLocal() as session:
+            # Check if list exists, prepend default provider if not specified
+            # For simplicity, we use the display name format "[Apple] Reminders"
+            # If the user just types "Reminders", we try to find it
+            stmt = select(TaskList).where(TaskList.name.contains(list_name))
+            result = await session.execute(stmt)
+            found_list = result.scalars().first()
+            
+            effective_list = found_list.name if found_list else f"[Apple] {list_name}"
+            
             new_task = Task(
                 title=title, 
-                list_name=list_name,
-                due_date=parsed_date.replace(tzinfo=timezone.utc) if parsed_date else None
+                list_name=effective_list,
+                due_date=parsed_date,
+                last_modified=datetime.now(timezone.utc)
             )
             session.add(new_task)
             await session.commit()
-            typer.echo(f"✅ Added: {title} (Due: {parsed_date or 'No date'})")
+            
+            typer.echo(f"✅ Added: '{title}' to {effective_list}")
+            if parsed_date:
+                typer.echo(f"📅 Due: {parsed_date.strftime('%Y-%m-%d %H:%M')}")
     
     asyncio.run(run())
 
