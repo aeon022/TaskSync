@@ -10,9 +10,9 @@ SCOPES = ['Tasks.ReadWrite']
 
 class MicrosoftToDoProvider:
     name = "microsoft"
-    account_label = "MS"
 
-    def __init__(self):
+    def __init__(self, account_label: str = "MS"):
+        self.account_label = account_label
         self.client_id = load_secret("microsoft", "client_id", is_json=False)
         self.tenant_id = load_secret("microsoft", "tenant_id", is_json=False) or "common"
         self.app = None

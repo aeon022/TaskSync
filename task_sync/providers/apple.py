@@ -6,7 +6,9 @@ from .. import api_apple
 
 class AppleRemindersProvider(Provider):
     name = "apple"
-    account_label = "Apple"
+
+    def __init__(self, account_label: str = "Apple"):
+        self.account_label = account_label
 
     def is_authenticated(self) -> bool:
         return api_apple.is_mac()

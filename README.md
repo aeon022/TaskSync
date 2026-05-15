@@ -1,6 +1,6 @@
 # 🚀 UniversalTask (utask) v2.0 - Elite Edition
 
-`utask` ist eine hochperformante, asynchrone CLI & TUI App zur Synchronisation von Aufgaben zwischen **Apple Reminders**, **Google Tasks** und **Microsoft To Do (FH Burgenland)**.
+`utask` ist eine hochperformante, asynchrone CLI & TUI App zur Synchronisation von Aufgaben zwischen **Apple Reminders**, **Google Tasks** und **Microsoft To Do**. Entwickelt für Power-User, die absolute Kontrolle über ihre Tasks benötigen, ohne den Terminal-Fokus zu verlieren.
 
 ---
 
@@ -13,17 +13,44 @@ Nach dem Klonen des Repos einfach das Setup-Skript ausführen. Es bereinigt alte
 ```
 
 ### 2. Globaler Befehl
-Das Setup erstellt einen Wrapper in `~/.local/bin/utask`. Stelle sicher, dass dieser Pfad in deinem `$PATH` ist.
+Das Setup erstellt einen Wrapper in `~/.local/bin/utask`. Stelle sicher, dass dieser Pfad in deinem `$PATH` ist (z.B. in deiner `.zshrc` oder `.bash_profile`).
 
 ---
 
 ## 🛰️ Hintergrund-Daemon (`utaskd`)
 
-utask v2.0 läuft "Headless". Du musst dich nicht um den Sync kümmern.
+`utask` läuft "Headless". Die Sync-Engine arbeitet unsichtbar im Hintergrund, damit das UI niemals blockiert.
 
-*   **`utask daemon-start`**: Installiert utask als macOS `LaunchAgent`. Der Sync läuft ab jetzt alle 5 Minuten vollautomatisch im Hintergrund.
+*   **`utask daemon-start`**: Installiert utask als macOS `LaunchAgent`. Der Sync läuft ab jetzt vollautomatisch im Hintergrund.
 *   **`utask daemon-stop`**: Stoppt den Hintergrunddienst und entfernt ihn aus dem System.
 *   **`utask logs`**: Zeigt die letzten Aktivitäten und den Status des Hintergrund-Syncs an.
+
+---
+
+## 🔄 Cross-Device Sync (iCloud Integration)
+
+`utask` unterstützt die Synchronisation deiner Account-Konfiguration über mehrere Macs hinweg.
+
+### 1. Shared Config aktivieren
+Verschiebe deine Provider-Liste in den iCloud Drive (oder einen anderen Cloud-Ordner), um auf allen Geräten dieselben Listen zu sehen:
+```bash
+utask config set-shared "~/Library/Mobile Documents/com~apple~CloudDocs/utask"
+```
+
+### 2. Funktionsweise
+*   **`providers.json`**: Wird im Shared Directory gespeichert und hält deine Accounts synchron.
+*   **Secrets**: Deine Tokens bleiben sicher im **iCloud Schlüsselbund** (via macOS Keychain).
+*   **Performance**: Die lokale SQLite-Datenbank bleibt auf jedem Gerät individuell für maximale Geschwindigkeit.
+
+---
+
+## 🔑 Authentifizierung
+
+Füge deine Accounts mit individuellen Labels hinzu:
+
+*   **Google Tasks**: `utask auth-google --label "Privat"` (Folge den Anweisungen im Terminal).
+*   **Microsoft To Do**: `utask auth-microsoft --client-id "DEINE_ID" --label "Arbeit"`.
+*   **Apple Reminders**: Wird auf macOS automatisch erkannt.
 
 ---
 
@@ -32,56 +59,37 @@ utask v2.0 läuft "Headless". Du musst dich nicht um den Sync kümmern.
 Starte das Interface mit: `utask ui`
 
 ### Navigation & Listen
-*   **Sidebar (Links)**: Listen sind nach Provider (Apple, FH, Google) gruppiert.
+*   **Sidebar (Links)**: Listen sind nach Provider und Label gruppiert.
 *   **`j` / `k` oder Pfeiltasten**: Durch den Baum navigieren.
 *   **`ENTER`**: Liste auswählen und Aufgaben laden.
 *   **`TAB`**: Wechseln zwischen Sidebar, Aufgabenliste und Details.
 
 ### Aufgaben-Aktionen
-*   **`SPACE`**: Aufgabe erledigen / wieder öffnen (triggert sofortigen Sync-Zeitstempel).
+*   **`SPACE`**: Aufgabe erledigen / wieder öffnen.
 *   **`a`**: Schnelles Hinzufügen einer neuen Aufgabe.
 *   **`d`**: Markierte Aufgabe löschen.
 *   **`u`**: Letzte Löschung rückgängig machen (Undo-Stack).
-*   **`v`**: Visual Mode (Mehrere Aufgaben markieren).
-
-### Befehlszeile (`:`) & Suche (`/`)
-*   **`:`**: Befehlsmodus öffnen.
-    *   `:sync` - Sofortigen manuellen Sync erzwingen.
-    *   `:h` oder `:hide` - Erledigte Aufgaben verstecken/zeigen.
-    *   `:delete list "Name"` - Eine komplette Liste überall (Remote & Lokal) löschen.
-    *   `:q` - App beenden.
 *   **`/`**: Schnellsuche (Fuzzy-Filter für die aktuelle Liste).
-*   **`?`**: Dieses Handbuch öffnen.
-*   **`ESC`**: Abbrechen / Zurück.
 
 ---
 
 ## ⚡ Natural Language Parsing (NLP)
 
-Du kannst Aufgaben direkt aus dem Terminal mit menschlicher Sprache hinzufügen:
+Füge Aufgaben direkt aus dem Terminal mit menschlicher Sprache hinzu:
 
 ```bash
 utask add "Meeting mit Projektgruppe nächsten Dienstag 14:00"
 ```
 
 *   **Intelligenz**: Erkennt automatisch Daten wie "morgen", "nächsten Freitag", "in 2 weeks".
-*   **Listen-Zuordnung**: Nutze `--list-name "Privat"`, um die Aufgabe direkt in eine spezifische Liste zu schieben.
-
----
-
-## 📈 Produktivitäts-Tracking
-
-Im Header des TUI siehst du eine **Echtzeit-Sparkline**.
-*   Jeder Balken repräsentiert einen der letzten 10 Tage.
-*   Die Höhe zeigt die Anzahl der an diesem Tag erledigten Aufgaben.
-*   Daten kommen direkt aus der lokalen SQLite "Single Source of Truth".
+*   **Automatische Zuordnung**: Nutzt das Label im Listennamen (z.B. `[Apple] Reminders`).
 
 ---
 
 ## 🔐 Security
 
-*   **Keine Passwörter in Plaintext**: Alle Tokens (Google/Microsoft) werden sicher im **macOS Schlüsselbund (Keyring)** gespeichert.
-*   **OAuth2**: Nutzt moderne Authentifizierungs-Flows für maximale Sicherheit.
+*   **Keine Passwörter in Plaintext**: Alle Secrets werden sicher im **macOS Schlüsselbund (Keyring)** gespeichert.
+*   **Privacy First**: Deine Daten gehören dir. Es gibt keinen utask-Server; der Sync erfolgt direkt zwischen deinem Mac und den Provider-APIs.
 
 ---
 

@@ -17,9 +17,9 @@ SCOPES = ['https://www.googleapis.com/auth/tasks']
 
 class GoogleTasksProvider:
     name = "google"
-    account_label = "Google"
 
-    def __init__(self):
+    def __init__(self, account_label: str = "Google"):
+        self.account_label = account_label
         self.creds = self._load_creds()
         self.service = None
         if self.creds:

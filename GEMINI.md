@@ -10,6 +10,7 @@ Das UI und die Sync-Logik werden radikal entkoppelt, um absolute System-Integrit
 * **Datenbank (Local Single Source of Truth):** **SQLModel (SQLite)**. Das TUI kommuniziert ausschließlich mit der lokalen Datenbank.
 * **Wasserdichtes Konflikt-Management:** "Latest Write Wins" mit ISO-Timestamps. Verhindert Datenkorruption zwischen lokaler CLI-Änderung und parallelem Handy-Edit.
 * **Keychain-Integration (Security):** Tokens (Google/Microsoft) werden nicht mehr als rohe `.json` oder `pickle`-Dateien gespeichert. Die Bibliothek `keyring` legt sie verschlüsselt und nativ im macOS Schlüsselbund (oder Linux Secret Service) ab.
+* **Shared Config (Cross-Device Sync):** Die Provider-Konfiguration (`providers.json`) kann via `utask config set-shared` in den iCloud Drive verschoben werden. Dadurch haben alle Macs denselben Stand an aktiven Accounts, während die SQLite-Datenbank und die Secrets (via iCloud Keychain) sicher und performant bleiben.
 
 ---
 
