@@ -18,24 +18,81 @@ const { title } = Astro.props;
 		<meta name="generator" content={Astro.generator} />
 		<title>{title}</title>
 	</head>
-	<body class="relative">
+	<body class="relative min-h-screen">
+    <!-- Page Loader -->
+    <div id="loader">
+      <div class="loader-bar"></div>
+    </div>
+
+    <!-- Scroll Progress -->
+    <div id="scroll-progress"></div>
+
     <!-- Animated Mesh Background -->
     <div class="mesh-gradient"></div>
     
     <!-- Parallax Grid -->
-    <div id="parallax-grid" class="bg-grid fixed inset-0 -z-10 pointer-events-none opacity-50"></div>
+    <div id="parallax-grid" class="bg-grid fixed inset-0 -z-10 pointer-events-none opacity-40"></div>
+
+    <!-- Back to Top -->
+    <div id="back-to-top" title="Back to Top">
+      <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-arrow-up"><path d="m5 12 7-7 7 7"/><path d="M12 19V5"/></svg>
+    </div>
 
 		<slot />
 
     <script>
-      // Simple parallax effect for the grid
+      // Page Loader Logic
+      window.addEventListener('load', () => {
+        setTimeout(() => {
+          document.getElementById('loader')?.classList.add('loaded');
+        }, 800);
+      });
+
+      // Scroll Handling
       window.addEventListener('scroll', () => {
         const scrolled = window.pageYOffset;
+        const totalHeight = document.documentElement.scrollHeight - window.innerHeight;
+        const progress = (scrolled / totalHeight) * 100;
+        
+        // Scroll Progress Bar
+        const progressEl = document.getElementById('scroll-progress');
+        if (progressEl) progressEl.style.width = `${progress}%`;
+
+        // Parallax Grid
         const grid = document.getElementById('parallax-grid');
-        if (grid) {
-          grid.style.transform = `translateY(${scrolled * 0.15}px)`;
+        if (grid) grid.style.transform = `translateY(${scrolled * 0.1}px)`;
+
+        // Back to Top Visibility
+        const btt = document.getElementById('back-to-top');
+        if (btt) {
+          if (scrolled > 500) btt.classList.add('visible');
+          else btt.classList.remove('visible');
         }
+
+        // Intersection Observer logic for reveals
+        revealOnScroll();
       });
+
+      // Back to Top click
+      document.getElementById('back-to-top')?.addEventListener('click', () => {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      });
+
+      // Simple Reveal Function
+      function revealOnScroll() {
+        const reveals = document.querySelectorAll('.reveal');
+        reveals.forEach(el => {
+          const windowHeight = window.innerHeight;
+          const elementTop = el.getBoundingClientRect().top;
+          const elementVisible = 150;
+          if (elementTop < windowHeight - elementVisible) {
+            el.classList.add('visible');
+          }
+        });
+      }
+
+      // Initial check
+      revealOnScroll();
     </script>
 	</body>
 </html>
