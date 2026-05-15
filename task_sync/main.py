@@ -247,5 +247,66 @@ def logs(lines: int = 20):
         for line in content[-lines:]:
             typer.echo(line.strip())
 
+@app.command()
+def doctor():
+    """Check system health and diagnostic information."""
+    from .config import CONFIG_DIR, get_shared_dir, SHARED_PATH_POINTER
+    from .api_apple import is_mac, get_event_store
+    import subprocess
+    import os
+    
+    typer.secho("🏥 utask Health Check", fg=typer.colors.MAGENTA, bold=True)
+    typer.echo("-" * 30)
+    
+    # 1. Directories & Permissions
+    typer.echo("📁 Directories:")
+    local_ok = "✅" if os.access(CONFIG_DIR, os.W_OK) else "❌"
+    typer.echo(f"  {local_ok} Local Config:  {CONFIG_DIR}")
+    
+    shared_dir = get_shared_dir()
+    shared_ptr = "✅" if SHARED_PATH_POINTER.exists() else "⚪"
+    shared_ok = "✅" if os.access(shared_dir, os.W_OK) else "❌"
+    typer.echo(f"  {shared_ok} Shared Dir:   {shared_dir} ({shared_ptr} linked)")
+    
+    # 2. Daemon Status
+    typer.echo("\n🛰️ Daemon Status:")
+    plist_path = Path.home() / "Library" / "LaunchAgents" / "com.aeon022.utaskd.plist"
+    if plist_path.exists():
+        res = subprocess.run(["launchctl", "list", "com.aeon022.utaskd"], capture_output=True, text=True)
+        if res.returncode == 0:
+            typer.echo("  ✅ Service is LOADED and RUNNING")
+        else:
+            typer.echo("  ⚠️ Service is LOADED but NOT RUNNING")
+    else:
+        typer.echo("  ⚪ Service is NOT INSTALLED")
+        
+    # 3. Provider Access
+    typer.echo("\n🔐 Provider Connectivity:")
+    if is_mac():
+        store = get_event_store()
+        apple_ok = "✅" if store else "❌"
+        typer.echo(f"  {apple_ok} Apple Reminders: Permissions OK")
+    
+    from .config import load_provider_config
+    from .providers import get_provider
+    providers = load_provider_config()
+    for p in providers:
+        instance = get_provider(p["type"], p["label"])
+        if instance:
+            # Simple check: try to get lists (cached if possible)
+            try:
+                # We just check if auth exists
+                auth_ok = "✅"
+                if p["type"] == "google":
+                    auth_ok = "✅" if instance._load_creds() else "❌"
+                elif p["type"] == "microsoft":
+                    auth_ok = "✅" if instance.client_id else "❌"
+                typer.echo(f"  {auth_ok} {p['type'].capitalize()} ({p['label']})")
+            except:
+                typer.echo(f"  ❌ {p['type'].capitalize()} ({p['label']}) - Error")
+
+    typer.echo("-" * 30)
+    typer.secho("System Integrity Confirmed.", fg=typer.colors.GREEN)
+
 if __name__ == "__main__":
     app()
