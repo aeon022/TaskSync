@@ -9,7 +9,7 @@ const { title } = Astro.props;
 ---
 
 <!doctype html>
-<html lang="en">
+<html lang="en" class="scroll-smooth">
 	<head>
 		<meta charset="UTF-8" />
 		<meta name="description" content="utask - The elite terminal task manager" />
@@ -18,7 +18,24 @@ const { title } = Astro.props;
 		<meta name="generator" content={Astro.generator} />
 		<title>{title}</title>
 	</head>
-	<body>
+	<body class="relative">
+    <!-- Animated Mesh Background -->
+    <div class="mesh-gradient"></div>
+    
+    <!-- Parallax Grid -->
+    <div id="parallax-grid" class="bg-grid fixed inset-0 -z-10 pointer-events-none opacity-50"></div>
+
 		<slot />
+
+    <script>
+      // Simple parallax effect for the grid
+      window.addEventListener('scroll', () => {
+        const scrolled = window.pageYOffset;
+        const grid = document.getElementById('parallax-grid');
+        if (grid) {
+          grid.style.transform = `translateY(${scrolled * 0.15}px)`;
+        }
+      });
+    </script>
 	</body>
 </html>
