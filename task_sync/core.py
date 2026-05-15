@@ -193,6 +193,63 @@ class SyncEngine:
             await session.execute(delete(TaskList).where(TaskList.name == display_name))
             await session.commit()
 
+    async def move_tasks(self, task_ids: List[int], target_label: str) -> int:
+        """Migrates tasks from their current provider to a new target provider."""
+        target_provider = next((p for p in self.providers if p.account_label.lower() == target_label.lower()), None)
+        if not target_provider:
+            return 0
+            
+        success_count = 0
+        now_utc = datetime.now(timezone.utc)
+        
+        async with AsyncSessionLocal() as session:
+            for task_id in task_ids:
+                task = await session.get(Task, task_id)
+                if not task: continue
+                
+                # 1. Find and delete from old provider
+                old_mapping_stmt = select(SyncMapping).where(SyncMapping.task_id == task_id)
+                old_mapping_res = await session.execute(old_mapping_stmt)
+                old_mapping = old_mapping_res.scalar_one_or_none()
+                
+                if old_mapping:
+                    old_provider = next((p for p in self.providers if p.name == old_mapping.provider_name), None)
+                    if old_provider:
+                        try:
+                            await old_provider.delete_task(old_mapping.remote_id)
+                        except Exception as e:
+                            logger.error(f"Failed to delete task {task_id} from old provider: {e}")
+                    await session.delete(old_mapping)
+                
+                # 2. Create on new provider
+                try:
+                    # Using a generic "Tasks" list name, providers fallback to default if not found
+                    new_remote_id = await target_provider.create_task(task.title, "Tasks")
+                    if new_remote_id:
+                        # Update task info
+                        task.list_name = f"[{target_provider.account_label}] Tasks"
+                        task.source_provider = target_provider.name
+                        task.last_modified = now_utc
+                        session.add(task)
+                        
+                        # Create new mapping
+                        session.add(SyncMapping(
+                            task_id=task.id, 
+                            provider_name=target_provider.name, 
+                            remote_id=new_remote_id, 
+                            last_sync=now_utc
+                        ))
+                        
+                        if task.status == "completed":
+                            await target_provider.update_task(new_remote_id, status="completed")
+                            
+                        success_count += 1
+                except Exception as e:
+                    logger.error(f"Failed to migrate task {task_id} to {target_label}: {e}")
+                    
+            await session.commit()
+        return success_count
+
 async def daemon_loop(engine: SyncEngine, interval: int = 300):
     while True:
         try:

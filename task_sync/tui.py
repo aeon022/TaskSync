@@ -86,6 +86,52 @@ class FocusScreen(ModalScreen):
         elif event.key == "space":
             self.dismiss(self.task_id)
 
+class InsightsScreen(ModalScreen):
+    """Productivity Insights Dashboard Screen."""
+    def compose(self) -> ComposeResult:
+        with Vertical(id="insights-dialog"):
+            yield Label(" 📈   PRODUCTIVITY INSIGHTS ", id="insights-header")
+            with ScrollableContainer(id="insights-scroll"):
+                yield Markdown("Calculating insights...", id="insights-markdown")
+            yield Label(" [ESC] Close Dashboard ", id="insights-footer")
+
+    async def on_mount(self) -> None:
+        from sqlalchemy import func
+        async with AsyncSessionLocal() as session:
+            # 1. Basic Stats
+            total_stmt = select(func.count(Task.id))
+            done_stmt = select(func.count(Task.id)).where(Task.status == "completed")
+            total = (await session.execute(total_stmt)).scalar() or 0
+            done = (await session.execute(done_stmt)).scalar() or 0
+            open_tasks = total - done
+            
+            # 2. Distribution by Provider
+            dist_stmt = select(Task.source_provider, func.count(Task.id)).where(Task.status == "completed").group_by(Task.source_provider)
+            dist_res = await session.execute(dist_stmt)
+            dist = dist_res.all()
+            
+            # Format Markdown
+            md = f"# Statistics Overview\n\n"
+            md += f"- **Total Tasks Managed:** {total}\n"
+            md += f"- **Completed Tasks:** {done} ({(done/total*100):.1f}%)\n"
+            md += f"- **Open Tasks:** {open_tasks}\n\n"
+            
+            md += "## Completions by Provider\n\n"
+            if dist:
+                for provider, count in dist:
+                    md += f"- **{provider or 'Local'}:** {count} tasks\n"
+            else:
+                md += "*No data yet.*\n\n"
+            
+            md += "---\n\n"
+            md += "💡 *Tip: High completion rates lead to better task management!*"
+            
+            await self.query_one("#insights-markdown", Markdown).update(md)
+
+    def on_key(self, event) -> None:
+        if event.key in ("escape", "q"):
+            self.dismiss()
+
 class TaskItem(ListItem):
     def __init__(self, task: Task):
         super().__init__()
@@ -116,6 +162,7 @@ class UniversalTaskApp(App):
         Binding("space", "toggle_complete", "Check"),
         Binding("x", "toggle_complete", "Check", show=False),
         Binding("v", "toggle_visual", "Visual"),
+        Binding("S", "postpone_tasks", "Postpone"),
         Binding("d,d", "delete_task", "Delete", show=False),
         Binding("d", "delete_task", "Delete"),
         Binding("u", "undo", "Undo"),
@@ -126,6 +173,7 @@ class UniversalTaskApp(App):
         Binding(":", "focus_command", "Command", show=False),
         Binding("s", "sync_now", "Sync"),
         Binding("p", "pomodoro_focus", "Focus"),
+        Binding("i", "show_insights", "Insights"),
         Binding("question_mark", "show_help", "Help"),
         Binding("escape", "cancel_input", "Cancel", show=False),
     ]
@@ -155,7 +203,7 @@ class UniversalTaskApp(App):
                 yield ListView(id="task-list")
             with Vertical(id="details-panel"):
                 yield Label(" ℹ️   DETAILS ", classes="panel-header")
-                yield Static("Select a task...", id="details-content")
+                yield Markdown("Select a task...", id="details-content")
         
         with Container(id="command-container"):
             yield Label(":", id="command-prefix")
@@ -272,14 +320,13 @@ class UniversalTaskApp(App):
         async with AsyncSessionLocal() as session:
             task = await session.get(Task, task_id)
             if task:
-                content = (f"[bold][mauve]{task.title}[/][/]\n\n"
-                           f"Status:   [mauve]{task.status}[/]\n"
-                           f"List:     [mauve]{task.list_name}[/]\n"
-                           f"Modified: [mauve]{task.last_modified.strftime('%Y-%m-%d %H:%M')}[/]\n"
-                           f"Source:   [mauve]{task.source_provider or 'Local'}[/]\n\n"
-                           f"--- Notes ---\n"
-                           f"{task.description or '[Empty]'}")
-                for detail in self.query("#details-content"): detail.update(content)
+                content = (f"# {task.title}\n\n"
+                           f"**Status:** {task.status} | **List:** {task.list_name}\n\n"
+                           f"**Modified:** {task.last_modified.strftime('%Y-%m-%d %H:%M')} | **Source:** {task.source_provider or 'Local'}\n\n"
+                           f"---\n\n"
+                           f"{task.description or '*No notes available.*'}")
+                for detail in self.query("#details-content"):
+                    await detail.update(content)
 
     def action_focus_command(self) -> None:
         for container in self.query("#command-container"):
@@ -288,17 +335,30 @@ class UniversalTaskApp(App):
             cmd_input.value = ""; cmd_input.focus()
 
     async def action_toggle_complete(self) -> None:
-        for view in self.query("#task-list"):
-            if view.index is not None:
-                old_index = view.index; item = view.children[view.index]
-                async with AsyncSessionLocal() as session:
-                    task = await session.get(Task, item.task_id)
-                    if task:
-                        task.status = "completed" if task.status != "completed" else "needsAction"
-                        task.last_modified = datetime.now(timezone.utc)
-                        session.add(task); await session.commit()
-                await self.refresh_tasks()
-                view.index = min(old_index, len(view.children)-1) if view.children else None
+        task_ids = []
+        if self.visual_mode and self.selected_ids:
+            task_ids = list(self.selected_ids)
+        else:
+            for view in self.query("#task-list"):
+                if view.index is not None:
+                    task_ids = [view.children[view.index].task_id]
+        
+        if not task_ids: return
+
+        async with AsyncSessionLocal() as session:
+            for tid in task_ids:
+                task = await session.get(Task, tid)
+                if task:
+                    task.status = "completed" if task.status != "completed" else "needsAction"
+                    task.last_modified = datetime.now(timezone.utc)
+                    session.add(task)
+            await session.commit()
+        
+        if self.visual_mode:
+            self.visual_mode = False
+            self.selected_ids = set()
+            
+        await self.refresh_tasks()
 
     def action_scroll_top(self) -> None:
         for view in self.query("#task-list"):
@@ -314,25 +374,48 @@ class UniversalTaskApp(App):
         self.notify(f"Visual Mode: {'ON' if self.visual_mode else 'OFF'}")
 
     async def action_delete_task(self) -> None:
-        for view in self.query("#task-list"):
-            if view.index is not None:
-                item = view.children[view.index]
-                async with AsyncSessionLocal() as session:
-                    task = await session.get(Task, item.task_id)
-                    if task:
-                        task_data = {c.name: getattr(task, c.name) for c in task.__table__.columns}
-                        self.undo_stack.append(("delete", task_data))
-                        await session.delete(task); await session.commit()
-                await self.refresh_tasks()
+        task_ids = []
+        if self.visual_mode and self.selected_ids:
+            task_ids = list(self.selected_ids)
+        else:
+            for view in self.query("#task-list"):
+                if view.index is not None:
+                    task_ids = [view.children[view.index].task_id]
+        
+        if not task_ids: return
+
+        bulk_data = []
+        async with AsyncSessionLocal() as session:
+            for tid in task_ids:
+                task = await session.get(Task, tid)
+                if task:
+                    task_data = {c.name: getattr(task, c.name) for c in task.__table__.columns}
+                    bulk_data.append(task_data)
+                    await session.delete(task)
+            await session.commit()
+        
+        if bulk_data:
+            self.undo_stack.append(("bulk_delete", bulk_data))
+        
+        if self.visual_mode:
+            self.visual_mode = False
+            self.selected_ids = set()
+            
+        await self.refresh_tasks()
 
     async def action_undo(self) -> None:
         if not self.undo_stack:
             self.notify("Nothing to undo"); return
         action, data = self.undo_stack.pop()
-        if action == "delete":
-            async with AsyncSessionLocal() as session:
-                session.add(Task(**data)); await session.commit()
-            await self.refresh_tasks(); self.notify("Restored task")
+        async with AsyncSessionLocal() as session:
+            if action == "delete":
+                session.add(Task(**data))
+            elif action == "bulk_delete":
+                for task_data in data:
+                    session.add(Task(**task_data))
+            await session.commit()
+        await self.refresh_tasks()
+        self.notify("Restored tasks")
 
     def action_focus_add(self) -> None:
         for inp in self.query("#add-task-input"):
@@ -352,6 +435,35 @@ class UniversalTaskApp(App):
         await get_engine().sync_all()
         self.is_syncing = False
         await self.refresh_lists(); await self.refresh_tasks(); self.notify("Sync completed")
+
+    async def action_postpone_tasks(self) -> None:
+        from datetime import timedelta
+        task_ids = []
+        if self.visual_mode and self.selected_ids:
+            task_ids = list(self.selected_ids)
+        else:
+            for view in self.query("#task-list"):
+                if view.index is not None:
+                    task_ids = [view.children[view.index].task_id]
+        
+        if not task_ids: return
+
+        tomorrow = datetime.now(timezone.utc) + timedelta(days=1)
+        async with AsyncSessionLocal() as session:
+            for tid in task_ids:
+                task = await session.get(Task, tid)
+                if task:
+                    task.due_date = tomorrow
+                    task.last_modified = datetime.now(timezone.utc)
+                    session.add(task)
+            await session.commit()
+        
+        if self.visual_mode:
+            self.visual_mode = False
+            self.selected_ids = set()
+            
+        await self.refresh_tasks()
+        self.notify(f"Postponed {len(task_ids)} tasks to tomorrow")
 
     def action_pomodoro_focus(self) -> None:
         for view in self.query("#task-list"):
@@ -380,6 +492,9 @@ class UniversalTaskApp(App):
     def action_show_help(self) -> None:
         if not isinstance(self.screen, HelpScreen): self.push_screen(HelpScreen())
 
+    def action_show_insights(self) -> None:
+        if not isinstance(self.screen, InsightsScreen): self.push_screen(InsightsScreen())
+
     def on_input_changed(self, event: Input.Changed) -> None:
         if event.input.id == "search-input":
             self.search_filter = event.value.strip()
@@ -397,6 +512,10 @@ class UniversalTaskApp(App):
                 list_name = raw_cmd[11:].strip().strip('"').strip("'")
                 if list_name: await self.action_delete_list(list_name)
                 else: self.notify("Please specify a list name", severity="error")
+            elif cmd.startswith("move "):
+                target_label = raw_cmd[5:].strip().strip('"').strip("'")
+                if target_label: await self.action_magic_move(target_label)
+                else: self.notify("Please specify a target provider label", severity="error")
         elif event.input.id == "add-task-input":
             title = event.value.strip()
             if title:
@@ -420,6 +539,32 @@ class UniversalTaskApp(App):
         await get_engine().delete_list(list_name)
         if self.current_list == list_name: self.current_list = "Reminders"
         await self.refresh_lists(); await self.refresh_tasks(); self.notify(f"Deleted list: {list_name}")
+
+    async def action_magic_move(self, target_label: str) -> None:
+        task_ids = []
+        if self.visual_mode and self.selected_ids:
+            task_ids = list(self.selected_ids)
+        else:
+            for view in self.query("#task-list"):
+                if view.index is not None:
+                    task_ids = [view.children[view.index].task_id]
+        
+        if not task_ids:
+            self.notify("No tasks selected to move", severity="warning")
+            return
+
+        self.notify(f"Moving {len(task_ids)} tasks to {target_label}...", severity="warning")
+        from .main import get_engine
+        success_count = await get_engine().move_tasks(task_ids, target_label)
+        
+        if success_count > 0:
+            self.visual_mode = False
+            self.selected_ids = set()
+            await self.refresh_lists()
+            await self.refresh_tasks()
+            self.notify(f"Successfully moved {success_count} tasks to {target_label}!")
+        else:
+            self.notify(f"Failed to move tasks. Check if provider '{target_label}' exists.", severity="error")
 
     def action_cancel_input(self) -> None:
         for container in self.query("#command-container"): container.remove_class("visible")

@@ -48,7 +48,11 @@ Screen {
 #details-panel {
     background: $mantle;
     border-left: vkey $surface0;
-    padding: 1 2;
+}
+
+#details-content {
+    background: transparent;
+    padding: 0 2;
 }
 
 .panel-header {
@@ -148,7 +152,7 @@ Tree .tree--guides {
 }
 
 /* Focus Mode - Zen Layout */
-#focus-dialog {
+#focus-dialog, #insights-dialog {
     background: $base;
     border: thick $mauve;
     width: 80;
@@ -158,12 +162,17 @@ Tree .tree--guides {
     layer: overlay;
 }
 
-#focus-header {
+#focus-header, #insights-header {
     width: 100%;
     text-align: center;
     text-style: bold;
     color: $mauve;
     margin-bottom: 2;
+}
+
+#insights-scroll {
+    height: 1fr;
+    margin-bottom: 1;
 }
 
 .large-timer {
