@@ -82,11 +82,26 @@ utask add "Meeting mit Projektgruppe nächsten Dienstag 14:00"
 ```
 
 *   **Intelligenz**: Erkennt automatisch Daten wie "morgen", "nächsten Freitag", "in 2 weeks".
-*   **Automatische Zuordnung**: Nutzt das Label im Listennamen (z.B. `[Apple] Reminders`).
+* **Automatische Zuordnung**: Nutzt das Label im Listennamen (z.B. `[Apple] Reminders`).
+
+---
+
+## 🏎️ Raycast Integration
+
+utask bietet fertige Script-Commands für Raycast, um Aufgaben blitzschnell ohne Terminal-Fokus zu verwalten.
+
+### 1. Einrichtung in Raycast
+1. Öffne die Raycast Einstellungen -> **Extensions** -> **Scripts**.
+2. Klicke auf **Add Directories** und wähle den Ordner `Raycast` in diesem Repository aus.
+
+### 2. Verfügbare Befehle
+*   **Add Task**: Tippe `add`, gib deine Aufgabe ein (z.B. `Pizza essen morgen 20:00`) und drücke Enter.
+*   **View Today's Tasks**: Zeigt dir sofort eine Liste aller Aufgaben an, die heute fällig sind.
 
 ---
 
 ## 🔐 Security
+
 
 *   **Keine Passwörter in Plaintext**: Alle Secrets werden sicher im **macOS Schlüsselbund (Keyring)** gespeichert.
 *   **Privacy First**: Deine Daten gehören dir. Es gibt keinen utask-Server; der Sync erfolgt direkt zwischen deinem Mac und den Provider-APIs.

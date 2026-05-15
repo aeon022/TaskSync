@@ -66,6 +66,26 @@ def get_tasks(list_name: str = "Reminders") -> List[Dict[str, Any]]:
     event.wait(timeout=5)
     return reminders
 
+def create_task(title: str, list_name: str) -> Optional[str]:
+    """Erstellt eine neue Aufgabe in Apple Erinnerungen."""
+    if not is_mac(): return None
+    from EventKit import EKReminder, EKEntityTypeReminder
+    store = get_event_store()
+    if not store: return None
+
+    calendars = store.calendarsForEntityType_(EKEntityTypeReminder)
+    target_cal = next((c for c in calendars if c.title() == list_name or (list_name == "Reminders" and c.title() == "Erinnerungen")), None)
+    if not target_cal: return None
+
+    reminder = EKReminder.reminderWithEventStore_(store)
+    reminder.setTitle_(title)
+    reminder.setCalendar_(target_cal)
+    
+    success, error = store.saveReminder_commit_error_(reminder, True, None)
+    if success:
+        return reminder.calendarItemExternalIdentifier()
+    return None
+
 def delete_list(name: str) -> bool:
     """Löscht eine Liste in Apple Erinnerungen."""
     if not is_mac(): return False

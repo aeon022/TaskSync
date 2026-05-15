@@ -61,6 +61,31 @@ def sync():
     typer.echo("Sync complete.")
 
 @app.command()
+def today():
+    """List all tasks due today across all providers."""
+    from .core import AsyncSessionLocal
+    from .models import Task
+    from sqlmodel import select
+    from datetime import datetime, time, timezone
+    
+    async def run():
+        async with AsyncSessionLocal() as session:
+            today_end = datetime.combine(datetime.now(timezone.utc).date(), time.max, tzinfo=timezone.utc)
+            # Find tasks with due_date today or in the past (not completed)
+            stmt = select(Task).where(Task.due_date <= today_end, Task.status != "completed")
+            result = await session.execute(stmt)
+            tasks = result.scalars().all()
+            
+            if not tasks:
+                typer.echo("🎉 Alles erledigt für heute!")
+                return
+                
+            for t in tasks:
+                typer.echo(f"◯ {t.title} ({t.list_name})")
+    
+    asyncio.run(run())
+
+@app.command()
 def daemon(interval: int = 300):
     """Start the utaskd sync daemon (active process)."""
     from .core import init_db

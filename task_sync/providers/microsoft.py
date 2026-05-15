@@ -111,3 +111,19 @@ class MicrosoftToDoProvider:
         async with aiohttp.ClientSession() as session:
             async with session.delete(f'https://graph.microsoft.com/v1.0/me/todo/lists/tasks/tasks/{remote_id}', headers=headers) as r:
                 return r.status == 204
+
+    async def create_list(self, name: str) -> bool:
+        return False
+
+    async def delete_list(self, name: str) -> bool:
+        headers = await self._headers()
+        if not headers: return False
+        async with aiohttp.ClientSession() as session:
+            lists = await self._get_lists_raw(session, headers)
+            target = next((l for l in lists if l['displayName'] == name), None)
+            if not target: return False
+            async with session.delete(f"https://graph.microsoft.com/v1.0/me/todo/lists/{target['id']}", headers=headers) as r:
+                return r.status == 204
+
+    async def rename_list(self, old_name: str, new_name: str) -> bool:
+        return False

@@ -2,6 +2,7 @@ import asyncio
 import os
 import re
 import random
+import subprocess
 from typing import Optional, List, Set
 from datetime import datetime, timezone
 
@@ -42,13 +43,57 @@ class HelpScreen(ModalScreen):
             event.stop()
             self.dismiss()
 
+class FocusScreen(ModalScreen):
+    """Pomodoro Focus Mode Screen."""
+    def __init__(self, task_id: int, task_title: str):
+        super().__init__()
+        self.task_id = task_id
+        self.task_title = task_title
+        self.time_remaining = 25 * 60 # 25 minutes
+        self.timer = None
+
+    def compose(self) -> ComposeResult:
+        with Vertical(id="focus-dialog"):
+            yield Label(f" 🚀 FOCUSING ON: {self.task_title} ", id="focus-header")
+            yield Label(self.format_time(), id="timer-display", classes="large-timer")
+            yield Label("[SPACE] Mark Completed  |  [ESC] Cancel Focus", id="focus-footer")
+
+    def format_time(self) -> str:
+        mins, secs = divmod(self.time_remaining, 60)
+        return f"{mins:02d}:{secs:02d}"
+
+    def on_mount(self) -> None:
+        self.timer = self.set_interval(1, self.tick)
+
+    def tick(self) -> None:
+        if self.time_remaining > 0:
+            self.time_remaining -= 1
+            self.query_one("#timer-display", Label).update(self.format_time())
+        else:
+            if self.timer:
+                self.timer.stop()
+            self.notify_completion()
+
+    def notify_completion(self) -> None:
+        msg = f"Pomodoro beendet: {self.task_title}"
+        subprocess.run(["osascript", "-e", f'display notification "{msg}" with title "🚀 utask v2.0"'])
+        self.query_one("#timer-display", Label).update("DONE!")
+        self.query_one("#timer-display", Label).styles.color = "green"
+
+    def on_key(self, event) -> None:
+        if event.key == "escape":
+            self.dismiss(None)
+        elif event.key == "space":
+            self.dismiss(self.task_id)
+
 class TaskItem(ListItem):
     def __init__(self, task: Task):
         super().__init__()
         self.task_id = task.id
         self.task_title = task.title
         self.task_status = task.status
-        self.priority = random.choice([0, 1, 2])
+        # Deterministic priority based on title
+        self.priority = 2 if "!!" in self.task_title else (1 if "!" in self.task_title else 0)
 
     def compose(self) -> ComposeResult:
         icon = "☐   " if self.task_status != "completed" else "☑   "
@@ -80,6 +125,7 @@ class UniversalTaskApp(App):
         Binding("colon", "focus_command", "Command"),
         Binding(":", "focus_command", "Command", show=False),
         Binding("s", "sync_now", "Sync"),
+        Binding("p", "pomodoro_focus", "Focus"),
         Binding("question_mark", "show_help", "Help"),
         Binding("escape", "cancel_input", "Cancel", show=False),
     ]
@@ -129,7 +175,8 @@ class UniversalTaskApp(App):
                 tree.select_node(first_list)
         await self.refresh_tasks()
         await self.update_sparkline()
-        self.set_timer(0.1, tree.focus)
+        # Ensure the tree has focus so keyboard commands work immediately
+        self.query_one("#list-tree").focus()
 
     async def update_sparkline(self) -> None:
         from datetime import timedelta
@@ -154,6 +201,12 @@ class UniversalTaskApp(App):
         for tree in self.query("#list-tree"):
             tree.clear()
             tree.root.expand()
+
+            # Inject Smart Views
+            smart = tree.root.add("[bold mauve]💡 SMART VIEWS[/]", expand=True)
+            smart.add_leaf("Heute", data="_smart_today")
+            smart.add_leaf("Wichtig", data="_smart_important")
+
             async with AsyncSessionLocal() as session:
                 statement = select(TaskList.name).distinct()
                 result = await session.execute(statement)
@@ -181,9 +234,18 @@ class UniversalTaskApp(App):
         for view in self.query("#task-list"):
             view.clear()
             async with AsyncSessionLocal() as session:
-                statement = select(Task).where(Task.list_name == self.current_list)
+                if self.current_list == "_smart_today":
+                    from datetime import time
+                    today_end = datetime.combine(datetime.now(timezone.utc).date(), time.max, tzinfo=timezone.utc)
+                    statement = select(Task).where(Task.due_date <= today_end)
+                elif self.current_list == "_smart_important":
+                    statement = select(Task).where(Task.title.contains("!"))
+                else:
+                    statement = select(Task).where(Task.list_name == self.current_list)
+                
                 if not self.show_completed:
                     statement = statement.where(Task.status != "completed")
+                
                 result = await session.execute(statement)
                 tasks = result.scalars().all()
                 # Apply search filter
@@ -191,8 +253,13 @@ class UniversalTaskApp(App):
                     tasks = [t for t in tasks if self.search_filter.lower() in t.title.lower()]
                 tasks.sort(key=lambda t: (t.status == "completed", t.title.lower()))
                 for t in tasks: view.append(TaskItem(t))
+            
             for header in self.query("#task-list-header"):
-                label = f" 📝   TASKS ({self.current_list})"
+                display_name = self.current_list
+                if display_name == "_smart_today": display_name = "Heute"
+                elif display_name == "_smart_important": display_name = "Wichtig"
+                
+                label = f" 📝   TASKS ({display_name})"
                 if self.search_filter: label += f" [🔍 {self.search_filter}]"
                 if not self.show_completed: label += " [HIDDEN DONE]"
                 header.update(label)
@@ -286,6 +353,30 @@ class UniversalTaskApp(App):
         self.is_syncing = False
         await self.refresh_lists(); await self.refresh_tasks(); self.notify("Sync completed")
 
+    def action_pomodoro_focus(self) -> None:
+        for view in self.query("#task-list"):
+            if view.index is not None:
+                item = view.children[view.index]
+                if item.task_status != "completed":
+                    self.push_screen(
+                        FocusScreen(item.task_id, item.task_title),
+                        callback=self.handle_focus_finish
+                    )
+                else:
+                    self.notify("Task is already completed!", severity="warning")
+
+    async def handle_focus_finish(self, task_id: Optional[int]) -> None:
+        if task_id:
+            async with AsyncSessionLocal() as session:
+                task = await session.get(Task, task_id)
+                if task:
+                    task.status = "completed"
+                    task.last_modified = datetime.now(timezone.utc)
+                    session.add(task)
+                    await session.commit()
+            await self.refresh_tasks()
+            self.notify(f"Task completed during focus!")
+
     def action_show_help(self) -> None:
         if not isinstance(self.screen, HelpScreen): self.push_screen(HelpScreen())
 
@@ -316,7 +407,12 @@ class UniversalTaskApp(App):
                 await self.refresh_tasks()
         elif event.input.id == "search-input":
             event.input.add_class("hidden")
-        for tree in self.query("#list-tree"): tree.focus()
+        
+        # Focus back to a sensible default after submission
+        if self.query("#task-list"):
+            self.query_one("#task-list").focus()
+        elif self.query("#list-tree"):
+            self.query_one("#list-tree").focus()
 
     async def action_delete_list(self, list_name: str) -> None:
         self.notify(f"Deleting list '{list_name}' everywhere...", severity="warning")
