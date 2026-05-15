@@ -100,6 +100,13 @@ utask bietet fertige Script-Commands für Raycast, um Aufgaben blitzschnell ohne
 
 ---
 
+## 🌐 Landing Page
+
+Besuche unsere offizielle Landing Page für einen visuellen Überblick der Features:
+👉 [utask.sh](https://github.com/aeon022/TaskSync/tree/main/website) (Source in `/website`)
+
+---
+
 ## 🔐 Security
 
 

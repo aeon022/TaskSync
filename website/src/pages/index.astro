@@ -1,0 +1,42 @@
+---
+import Layout from '../layouts/Layout.astro';
+import Hero from '../components/Hero.astro';
+import Terminal from '../components/Terminal.astro';
+import Features from '../components/Features.astro';
+---
+
+<Layout title="utask — The elite terminal task manager">
+	<main>
+		<Hero />
+		<Terminal />
+		<Features />
+		
+		<section id="install" class="max-w-4xl mx-auto py-32 px-4 text-center">
+			<h2 class="text-3xl font-bold mb-8 gradient-text">Ready to level up?</h2>
+			<div class="bg-zinc-950 border border-zinc-800 p-8 rounded-2xl relative inline-block text-left w-full max-w-xl border-glow">
+				<div class="flex justify-between items-center mb-4">
+					<div class="flex gap-1.5">
+						<div class="w-2.5 h-2.5 rounded-full bg-zinc-800"></div>
+						<div class="w-2.5 h-2.5 rounded-full bg-zinc-800"></div>
+						<div class="w-2.5 h-2.5 rounded-full bg-zinc-800"></div>
+					</div>
+					<div class="text-[10px] uppercase tracking-widest text-zinc-600 font-bold">Installation</div>
+				</div>
+				<code class="text-mauve font-mono text-sm block">
+					git clone https://github.com/aeon022/TaskSync.git<br/>
+					cd TaskSync<br/>
+					./setup.sh
+				</code>
+			</div>
+			<p class="mt-8 text-zinc-500 text-sm italic">
+				Requires Python 3.10+ and macOS for full feature set.
+			</p>
+		</section>
+
+		<footer class="py-20 border-t border-zinc-900 text-center">
+			<p class="text-zinc-600 text-sm">
+				Built for the terminal elite. No bloat. Just speed.
+			</p>
+		</footer>
+	</main>
+</Layout>

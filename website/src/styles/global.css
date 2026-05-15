@@ -1,0 +1,34 @@
+@import "tailwindcss";
+
+@theme {
+  --color-base: #1e1e2e;
+  --color-mantle: #181825;
+  --color-crust: #11111b;
+  --color-mauve: #cba6f7;
+  --color-peach: #fab387;
+  --color-blue: #89b4fa;
+  --color-green: #a6e3a1;
+}
+
+@layer base {
+  body {
+    @apply bg-[#030303] text-zinc-100 antialiased selection:bg-mauve/30 selection:text-mauve;
+  }
+}
+
+.glow {
+  box-shadow: 0 0 40px 10px rgba(203, 166, 247, 0.05);
+}
+
+.gradient-text {
+  @apply bg-clip-text text-transparent bg-gradient-to-b from-white to-zinc-400;
+}
+
+.border-glow {
+  @apply relative;
+}
+
+.border-glow::after {
+  content: "";
+  @apply absolute -inset-[1px] rounded-xl bg-gradient-to-b from-zinc-700/50 to-transparent -z-10;
+}

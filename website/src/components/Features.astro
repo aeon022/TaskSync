@@ -1,0 +1,40 @@
+---
+const features = [
+  {
+    title: "Headless Sync",
+    desc: "A background daemon keeps your tasks in sync without you ever noticing.",
+    icon: "🔄",
+    color: "mauve"
+  },
+  {
+    title: "Focus Mode",
+    desc: "Enter a deep work state with a 25-minute Pomodoro timer directly in your TUI.",
+    icon: "🚀",
+    color: "peach"
+  },
+  {
+    title: "Raycast Ready",
+    desc: "Add tasks and view your day from Raycast without touching the terminal.",
+    icon: "🏎️",
+    color: "blue"
+  },
+  {
+    title: "Shared Config",
+    desc: "Sync your active providers across multiple Macs using iCloud Drive.",
+    icon: "☁️",
+    color: "green"
+  }
+];
+---
+
+<section class="max-w-6xl mx-auto py-32 px-4">
+  <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+    {features.map(f => (
+      <div class="bg-zinc-950 border border-zinc-800 p-8 rounded-2xl border-glow hover:border-zinc-700 transition-colors">
+        <div class="text-3xl mb-4">{f.icon}</div>
+        <h3 class="text-xl font-bold mb-2 text-white">{f.title}</h3>
+        <p class="text-zinc-500 text-sm leading-relaxed">{f.desc}</p>
+      </div>
+    ))}
+  </div>
+</section>
