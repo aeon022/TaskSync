@@ -6,7 +6,7 @@
     class="max-w-fit mx-auto px-4 py-2 rounded-full border border-zinc-800/50 bg-[#050505]/40 backdrop-blur-xl shadow-2xl shadow-black/50 pointer-events-auto transition-all duration-500 ease-out flex items-center gap-8"
   >
     <!-- Logo -->
-    <a href="#" class="flex items-center gap-2.5 pl-2 group nav-link-scroll">
+    <a href="#" class="flex items-center gap-2.5 pl-2 group">
       <div class="w-7 h-7 rounded-lg bg-mauve/20 flex items-center justify-center border border-mauve/30 group-hover:bg-mauve/30 transition-all">
         <span class="text-mauve text-[10px] font-bold italic">u</span>
       </div>
@@ -59,26 +59,6 @@
   const nav = document.getElementById('navbar');
   const links = document.querySelectorAll('.nav-link');
   const sections = ['terminal', 'features', 'commands', 'install'];
-
-  // Smooth Scroll Helper
-  document.querySelectorAll('a[href^="#"]').forEach(anchor => {
-    anchor.addEventListener('click', function (e) {
-      e.preventDefault();
-      const targetId = this.getAttribute('href');
-      const targetElement = targetId === '#' ? document.body : document.querySelector(targetId);
-      
-      if (targetElement) {
-        const offset = 100; // Extra offset for the floating navbar
-        const elementPosition = targetElement.getBoundingClientRect().top;
-        const offsetPosition = elementPosition + window.pageYOffset - offset;
-
-        window.scrollTo({
-          top: offsetPosition,
-          behavior: 'smooth'
-        });
-      }
-    });
-  });
 
   window.addEventListener('scroll', () => {
     // Navbar Shrink Effect
