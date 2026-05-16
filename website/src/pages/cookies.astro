@@ -1,0 +1,48 @@
+---
+import Layout from '../layouts/Layout.astro';
+import Navbar from '../components/Navbar.astro';
+---
+
+<Layout title="Cookie Policy — utask">
+  <main class="relative pt-40 pb-20 px-6">
+    <Navbar />
+    <div class="max-w-3xl mx-auto">
+      <h1 class="text-4xl md:text-6xl font-bold gradient-text mb-8">Cookie Policy</h1>
+      <p class="text-zinc-400 mb-12 leading-relaxed italic">Last updated: May 2026</p>
+      
+      <div class="prose prose-invert prose-mauve max-w-none space-y-10">
+        <section>
+          <h2 class="text-2xl font-bold text-white mb-4">1. What are cookies?</h2>
+          <p class="text-zinc-400">
+            Cookies are small text files that are stored on your device when you visit a website. They help us provide a better experience by remembering your preferences and understanding how you use our site.
+          </p>
+        </section>
+
+        <section>
+          <h2 class="text-2xl font-bold text-white mb-4">2. How we use cookies</h2>
+          <p class="text-zinc-400 mb-4">
+            We use the following types of cookies:
+          </p>
+          <ul class="list-disc pl-6 space-y-3 text-zinc-400">
+            <li><strong>Essential Cookies:</strong> These are required for the website to function. They cannot be turned off.</li>
+            <li><strong>Analytical Cookies:</strong> These help us understand traffic and usage patterns. We only use anonymized data.</li>
+            <li><strong>Theme Cookies:</strong> We store your preferred interface settings (e.g., Catppuccin flavor) locally.</li>
+          </ul>
+        </section>
+
+        <section>
+          <h2 class="text-2xl font-bold text-white mb-4">3. No Third-Party Tracking</h2>
+          <p class="text-zinc-400">
+            utask is built with privacy in mind. We do not use advertising cookies or share your browsing data with third-party tracking services like Meta or Google Analytics for marketing purposes.
+          </p>
+        </section>
+
+        <div class="pt-20">
+          <a href="/" class="inline-flex items-center gap-2 text-mauve hover:text-white transition-colors group">
+            <span class="text-lg group-hover:-translate-x-1 transition-transform">←</span> Back to home
+          </a>
+        </div>
+      </div>
+    </div>
+  </main>
+</Layout>

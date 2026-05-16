@@ -5,6 +5,7 @@ import Hero from '../components/Hero.astro';
 import Terminal from '../components/Terminal.astro';
 import Features from '../components/Features.astro';
 import FooterSignature from '../components/FooterSignature.astro';
+import CookieBanner from '../components/CookieBanner.astro';
 ---
 
 <Layout title="utask — The elite terminal task manager">
@@ -14,20 +15,90 @@ import FooterSignature from '../components/FooterSignature.astro';
 		<Terminal />
 		
 		<section id="features" class="scroll-mt-32">
-			<div class="max-w-4xl mx-auto text-center mt-32 mb-16 opacity-0 translate-y-8 transition-all duration-700 reveal">
+			<div class="max-w-4xl mx-auto text-center mt-32 mb-16 reveal">
 				<h2 class="text-3xl font-bold gradient-text mb-4">Powerful by design.</h2>
 				<p class="text-zinc-500 max-w-lg mx-auto">Built for engineers who value speed, privacy, and system integrity.</p>
 			</div>
 			<Features />
 		</section>
+
+    <!-- Detailed App Sections -->
+    <section class="max-w-6xl mx-auto py-40 px-6 space-y-40">
+      <!-- Section 1: Headless Sync -->
+      <div class="grid md:grid-cols-2 gap-12 items-center reveal">
+        <div>
+          <div class="text-mauve text-xs font-bold uppercase tracking-[0.3em] mb-4">Architecture</div>
+          <h2 class="text-4xl font-bold text-white mb-6 leading-tight">Headless Core. <br/> Zero Latency.</h2>
+          <p class="text-zinc-400 text-lg leading-relaxed mb-8">
+            The heart of utask is a background daemon that operates independently of the interface. This ensures that typing, navigating, and managing tasks is always instantaneous, regardless of your internet connection or API response times.
+          </p>
+          <ul class="space-y-4">
+            <li class="flex gap-3 text-zinc-300 items-start">
+              <span class="text-mauve mt-1 italic">❯</span>
+              <span>SQLModel (SQLite) as local Single Source of Truth</span>
+            </li>
+            <li class="flex gap-3 text-zinc-300 items-start">
+              <span class="text-mauve mt-1 italic">❯</span>
+              <span>Exponential Backoff for resilient API communication</span>
+            </li>
+          </ul>
+        </div>
+        <div class="bg-[#0b0b0b] border border-zinc-800 p-8 rounded-3xl border-glow relative overflow-hidden group">
+          <div class="absolute inset-0 bg-mauve/5 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+          <code class="text-mauve font-mono text-xs block space-y-2">
+            <div class="opacity-40">// Starting utaskd sync loop...</div>
+            <div>[INFO] Google Tasks: Found 6 lists</div>
+            <div class="text-green-400">[OK] Syncing 'Work' (Microsoft)</div>
+            <div>[INFO] Propagating 2 local changes...</div>
+            <div class="text-zinc-500">[DEBUG] Connection established.</div>
+          </code>
+        </div>
+      </div>
+
+      <!-- Section 2: Pro Tier Features -->
+      <div class="grid md:grid-cols-2 gap-12 items-center reveal">
+        <div class="order-2 md:order-1 bg-[#0b0b0b] border border-zinc-800 p-8 rounded-3xl border-glow">
+          <div class="flex flex-col gap-6">
+            <div class="flex gap-4">
+              <div class="w-12 h-12 rounded-xl bg-mauve/10 border border-mauve/20 flex items-center justify-center text-xl">🧘</div>
+              <div>
+                <div class="font-bold text-white">Pomodoro Focus</div>
+                <div class="text-xs text-zinc-500">25min Zen-mode directly in TUI</div>
+              </div>
+            </div>
+            <div class="flex gap-4">
+              <div class="w-12 h-12 rounded-xl bg-peach/10 border border-peach/20 flex items-center justify-center text-xl">🪄</div>
+              <div>
+                <div class="font-bold text-white">Magic Move</div>
+                <div class="text-xs text-zinc-500">Migrate tasks between providers instantly</div>
+              </div>
+            </div>
+            <div class="flex gap-4">
+              <div class="w-12 h-12 rounded-xl bg-blue/10 border border-blue/20 flex items-center justify-center text-xl">📖</div>
+              <div>
+                <div class="font-bold text-white">Markdown Notes</div>
+                <div class="text-xs text-zinc-500">Rich task descriptions with full formatting</div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="order-1 md:order-2">
+          <div class="text-peach text-xs font-bold uppercase tracking-[0.3em] mb-4">Productivity</div>
+          <h2 class="text-4xl font-bold text-white mb-6 leading-tight">Engineered for <br/> Flow.</h2>
+          <p class="text-zinc-400 text-lg leading-relaxed">
+            Every feature in utask is built with muscle memory in mind. Use Vim-motions to fly through your lists, or trigger bulk actions to postpone an entire day's work in a single keystroke.
+          </p>
+        </div>
+      </div>
+    </section>
 		
 		<section id="install" class="max-w-5xl mx-auto py-40 px-6 text-center scroll-mt-32">
-			<div class="opacity-0 translate-y-8 transition-all duration-700 reveal">
-				<h2 class="text-4xl font-bold mb-6 gradient-text">Ready to level up?</h2>
+			<div class="reveal">
+				<h2 class="text-5xl font-bold mb-6 gradient-text">Ready to level up?</h2>
 				<p class="text-zinc-500 mb-12 max-w-xl mx-auto text-lg">Join the terminal elite and take control of your productivity across all your Apple devices.</p>
 			</div>
 			
-			<div class="bg-zinc-950 border border-zinc-800 p-10 rounded-3xl relative inline-block text-left w-full max-w-2xl border-glow opacity-0 scale-95 transition-all duration-1000 delay-200 reveal">
+			<div class="bg-zinc-950 border border-zinc-800 p-10 rounded-3xl relative inline-block text-left w-full max-w-2xl border-glow reveal">
 				<div class="flex justify-between items-center mb-6">
 					<div class="flex gap-2">
 						<div class="w-3 h-3 rounded-full bg-zinc-800"></div>
@@ -54,7 +125,7 @@ import FooterSignature from '../components/FooterSignature.astro';
 				</div>
 			</div>
 			
-			<div class="mt-16 flex flex-col sm:flex-row items-center justify-center gap-8 opacity-0 translate-y-8 transition-all duration-700 delay-300 reveal">
+			<div class="mt-16 flex flex-col sm:flex-row items-center justify-center gap-8 reveal">
 				<div class="flex items-center gap-3">
 					<div class="w-10 h-10 rounded-xl bg-zinc-900 flex items-center justify-center border border-zinc-800"></div>
 					<div class="text-left">
@@ -74,28 +145,35 @@ import FooterSignature from '../components/FooterSignature.astro';
 			</div>
 		</section>
 
-		<footer class="py-20 border-t border-zinc-900/50">
+		<footer class="py-20 border-t border-zinc-900/50 relative">
 			<div class="max-w-6xl mx-auto px-6 flex flex-col md:flex-row justify-between items-center gap-8">
-				<div class="text-xl font-bold tracking-tighter text-white">utask<span class="text-mauve">.</span></div>
-				<div class="text-zinc-600 text-sm">
-					© 2026 Build for the terminal elite. No bloat. Just speed.
+				<div class="flex items-center gap-3">
+          <div class="w-6 h-6 rounded bg-mauve/20 flex items-center justify-center border border-mauve/30">
+            <span class="text-mauve text-[8px] font-bold italic">u</span>
+          </div>
+          <div class="text-xl font-bold tracking-tighter text-white">utask<span class="text-mauve">.</span></div>
+        </div>
+				<div class="text-zinc-600 text-[11px] uppercase tracking-widest font-bold">
+					Build for the terminal elite. No bloat. Just speed.
 				</div>
-				<div class="flex gap-6">
-					<a href="https://github.com/aeon022/TaskSync" class="text-zinc-500 hover:text-white transition-colors">GitHub</a>
-					<a href="https://twitter.com/aeon022" class="text-zinc-500 hover:text-white transition-colors">Twitter</a>
+				<div class="flex gap-8 text-[10px] uppercase tracking-widest font-black">
+          <a href="https://abteilung83.at" target="_blank" class="text-zinc-500 hover:text-white transition-colors">Main Site</a>
+					<a href="https://abteilung83.at/imprint" target="_blank" class="text-zinc-500 hover:text-white transition-colors">Imprint</a>
+          <a href="https://abteilung83.at/privacy" target="_blank" class="text-zinc-500 hover:text-white transition-colors">Privacy</a>
 				</div>
 			</div>
 		</footer>
     <FooterSignature />
+    <CookieBanner />
 	</main>
 </Layout>
 
 <script>
+  // Advanced Scroll Reveal
   const observer = new IntersectionObserver((entries) => {
     entries.forEach(entry => {
       if (entry.isIntersecting) {
-        entry.target.classList.add('opacity-100', 'translate-y-0', 'scale-100');
-        entry.target.classList.remove('opacity-0', 'translate-y-8', 'scale-95');
+        entry.target.classList.add('visible');
       }
     });
   }, { threshold: 0.1 });
