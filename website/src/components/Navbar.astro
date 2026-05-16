@@ -3,10 +3,10 @@
 <header class="fixed top-6 left-0 right-0 z-50 px-6 pointer-events-none">
   <nav 
     id="navbar" 
-    class="max-w-fit mx-auto px-4 py-2 rounded-full border border-zinc-800/50 bg-[#030303]/40 backdrop-blur-xl shadow-2xl shadow-black/50 pointer-events-auto transition-all duration-500 ease-out flex items-center gap-8"
+    class="max-w-fit mx-auto px-4 py-2 rounded-full border border-zinc-800/50 bg-[#050505]/40 backdrop-blur-xl shadow-2xl shadow-black/50 pointer-events-auto transition-all duration-500 ease-out flex items-center gap-8"
   >
     <!-- Logo -->
-    <a href="/" class="flex items-center gap-2.5 pl-2 group">
+    <a href="#" class="flex items-center gap-2.5 pl-2 group">
       <div class="w-7 h-7 rounded-lg bg-mauve/20 flex items-center justify-center border border-mauve/30 group-hover:bg-mauve/30 transition-all">
         <span class="text-mauve text-[10px] font-bold italic">u</span>
       </div>
@@ -14,10 +14,19 @@
     </a>
     
     <!-- Navigation Links -->
-    <div class="hidden md:flex items-center gap-6 text-[10px] uppercase tracking-[0.2em] font-bold text-zinc-500">
-      <a href="#features" class="hover:text-mauve transition-colors">Features</a>
-      <a href="#terminal" class="hover:text-mauve transition-colors">Terminal</a>
-      <a href="#install" class="hover:text-mauve transition-colors">Install</a>
+    <div class="hidden md:flex items-center gap-6 text-[10px] uppercase tracking-[0.2em] font-bold text-zinc-500" id="nav-links">
+      <a href="#features" class="nav-link relative hover:text-white transition-colors py-1">
+        Features
+        <span class="underline-bar absolute bottom-0 left-0 w-0 h-[1px] bg-mauve transition-all duration-300"></span>
+      </a>
+      <a href="#terminal" class="nav-link relative hover:text-white transition-colors py-1">
+        Terminal
+        <span class="underline-bar absolute bottom-0 left-0 w-0 h-[1px] bg-mauve transition-all duration-300"></span>
+      </a>
+      <a href="#install" class="nav-link relative hover:text-white transition-colors py-1">
+        Install
+        <span class="underline-bar absolute bottom-0 left-0 w-0 h-[1px] bg-mauve transition-all duration-300"></span>
+      </a>
     </div>
 
     <!-- Actions -->
@@ -33,15 +42,47 @@
   </nav>
 </header>
 
+<style>
+  .nav-link.active {
+    color: white;
+  }
+  .nav-link.active .underline-bar {
+    width: 100%;
+  }
+</style>
+
 <script>
   const nav = document.getElementById('navbar');
+  const links = document.querySelectorAll('.nav-link');
+  const sections = ['features', 'terminal', 'install'];
+
   window.addEventListener('scroll', () => {
+    // Navbar Shrink Effect
     if (window.scrollY > 50) {
-      nav?.classList.add('px-3', 'py-1.5', 'border-mauve/20', 'bg-[#030303]/80');
-      nav?.classList.remove('px-4', 'py-2', 'border-zinc-800/50', 'bg-[#030303]/40');
+      nav?.classList.add('px-3', 'py-1.5', 'border-mauve/20', 'bg-[#050505]/80');
+      nav?.classList.remove('px-4', 'py-2', 'border-zinc-800/50', 'bg-[#050505]/40');
     } else {
-      nav?.classList.remove('px-3', 'py-1.5', 'border-mauve/20', 'bg-[#030303]/80');
-      nav?.classList.add('px-4', 'py-2', 'border-zinc-800/50', 'bg-[#030303]/40');
+      nav?.classList.remove('px-3', 'py-1.5', 'border-mauve/20', 'bg-[#050505]/80');
+      nav?.classList.add('px-4', 'py-2', 'border-zinc-800/50', 'bg-[#050505]/40');
     }
+
+    // Scrollspy Logic
+    let current = "";
+    sections.forEach((section) => {
+      const element = document.getElementById(section);
+      if (element) {
+        const sectionTop = element.offsetTop;
+        if (window.scrollY >= sectionTop - 250) {
+          current = section;
+        }
+      }
+    });
+
+    links.forEach((link) => {
+      link.classList.remove('active');
+      if (link.getAttribute('href') === `#${current}`) {
+        link.classList.add('active');
+      }
+    });
   });
 </script>
