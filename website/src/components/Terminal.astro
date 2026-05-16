@@ -19,9 +19,9 @@
         <div class="text-[10px] font-mono text-zinc-600">SSH: 127.0.0.1</div>
       </div>
       
-      <div class="p-8 font-mono text-sm leading-relaxed grid grid-cols-12 gap-6 min-h-[400px]">
+      <div class="p-4 md:p-8 font-mono text-xs md:text-sm leading-relaxed grid grid-cols-1 md:grid-cols-12 gap-6 min-h-[300px] md:min-h-[400px]">
         <!-- Sidebar -->
-        <div class="col-span-3 border-r border-zinc-800/50 pr-4">
+        <div class="hidden md:block col-span-3 border-r border-zinc-800/50 pr-4">
           <div class="text-mauve font-bold text-xs mb-6 tracking-widest">📂 LISTS</div>
           <div class="space-y-4">
             <div>
@@ -41,21 +41,21 @@
         </div>
 
         <!-- Tasks -->
-        <div class="col-span-5 px-4">
+        <div class="col-span-1 md:col-span-5 px-0 md:px-4">
           <div class="text-mauve font-bold text-xs mb-6 tracking-widest">📝 TASKS (Wichtig)</div>
           <div class="space-y-3">
             <div class="flex gap-4 items-center group">
-              <span class="text-zinc-700 text-lg">☐</span>
+              <span class="text-zinc-700 text-base md:text-lg">☐</span>
               <span class="text-red-400 font-black">!!</span>
               <span class="text-zinc-100">Implement Focus Mode</span>
             </div>
             <div class="flex gap-4 items-center opacity-40">
-              <span class="text-mauve text-lg">☑</span>
+              <span class="text-mauve text-base md:text-lg">☑</span>
               <span class="w-4"></span>
               <span class="line-through">Refactor Sync Engine</span>
             </div>
             <div class="flex gap-4 items-center">
-              <span class="text-zinc-700 text-lg">☐</span>
+              <span class="text-zinc-700 text-base md:text-lg">☐</span>
               <span class="text-peach font-bold">!</span>
               <span class="text-zinc-300">Add Raycast Scripts</span>
             </div>
@@ -63,16 +63,16 @@
         </div>
 
         <!-- Details / Markdown -->
-        <div class="col-span-4 bg-zinc-900/20 p-5 rounded-xl border border-zinc-800/40">
+        <div class="col-span-1 md:col-span-4 bg-zinc-900/20 p-4 md:p-5 rounded-xl border border-zinc-800/40">
           <div class="text-mauve font-bold text-[10px] mb-4 tracking-widest uppercase">ℹ️ Details</div>
           <div class="space-y-3">
-            <h3 class="text-zinc-100 font-bold text-base">Focus Mode</h3>
-            <div class="flex gap-2 text-[10px] text-zinc-500">
+            <h3 class="text-zinc-100 font-bold text-sm md:text-base">Focus Mode</h3>
+            <div class="flex gap-2 text-[9px] md:text-[10px] text-zinc-500">
                 <span class="bg-zinc-800 px-1.5 py-0.5 rounded">Apple</span>
                 <span class="bg-zinc-800 px-1.5 py-0.5 rounded">High Prio</span>
             </div>
             <div class="h-[1px] bg-zinc-800/50 w-full my-2"></div>
-            <div class="text-[11px] text-zinc-400 leading-relaxed space-y-2">
+            <div class="text-[10px] md:text-[11px] text-zinc-400 leading-relaxed space-y-2">
                 <p>Implement the 25min Zen-timer.</p>
                 <ul class="list-disc pl-4 space-y-1 text-zinc-500">
                     <li>Modal screen</li>
