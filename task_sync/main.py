@@ -4,7 +4,7 @@ import sys
 from typing import Optional
 from pathlib import Path
 
-app = typer.Typer(help="utask v2.0 - Headless Task Sync CLI")
+app = typer.Typer(help="utask v2.0 - Headless Task Sync CLI (https://utask.sh)")
 config_app = typer.Typer(help="Manage utask configuration")
 app.add_typer(config_app, name="config")
 
