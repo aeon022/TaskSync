@@ -27,11 +27,15 @@ const { title } = Astro.props;
     <!-- Scroll Progress -->
     <div id="scroll-progress"></div>
 
-    <!-- Animated Mesh Background -->
-    <div class="mesh-gradient"></div>
+    <!-- Atmospheric Background -->
+    <div class="atmospheric-bg">
+      <div class="glow-orb orb-1"></div>
+      <div class="glow-orb orb-2"></div>
+      <div class="glow-orb orb-3"></div>
+    </div>
     
-    <!-- Parallax Grid -->
-    <div id="parallax-grid" class="bg-grid fixed inset-0 -z-10 pointer-events-none opacity-40"></div>
+    <!-- Subtle Grain -->
+    <div class="grain"></div>
 
     <!-- Back to Top -->
     <div id="back-to-top" title="Back to Top">
@@ -58,10 +62,6 @@ const { title } = Astro.props;
         const progressEl = document.getElementById('scroll-progress');
         if (progressEl) progressEl.style.width = `${progress}%`;
 
-        // Parallax Grid
-        const grid = document.getElementById('parallax-grid');
-        if (grid) grid.style.transform = `translateY(${scrolled * 0.1}px)`;
-
         // Back to Top Visibility
         const btt = document.getElementById('back-to-top');
         if (btt) {
@@ -69,7 +69,13 @@ const { title } = Astro.props;
           else btt.classList.remove('visible');
         }
 
-        // Intersection Observer logic for reveals
+        // Parallax effect for orbs
+        const orbs = document.querySelectorAll('.glow-orb');
+        orbs.forEach((orb, index) => {
+          const speed = (index + 1) * 0.05;
+          (orb as HTMLElement).style.transform = `translateY(${scrolled * speed}px)`;
+        });
+
         revealOnScroll();
       });
 
@@ -78,7 +84,6 @@ const { title } = Astro.props;
         window.scrollTo({ top: 0, behavior: 'smooth' });
       });
 
-      // Simple Reveal Function
       function revealOnScroll() {
         const reveals = document.querySelectorAll('.reveal');
         reveals.forEach(el => {
@@ -91,7 +96,6 @@ const { title } = Astro.props;
         });
       }
 
-      // Initial check
       revealOnScroll();
     </script>
 	</body>
