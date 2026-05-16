@@ -91,6 +91,32 @@ import CookieBanner from '../components/CookieBanner.astro';
         </div>
       </div>
     </section>
+
+    <!-- Commands Section -->
+    <section id="commands" class="max-w-6xl mx-auto py-40 px-6 scroll-mt-32 reveal">
+      <div class="text-center mb-20">
+        <h2 class="text-4xl font-bold text-white mb-4">Command Reference</h2>
+        <p class="text-zinc-500">Powerful CLI utilities for the modern developer.</p>
+      </div>
+      
+      <div class="grid md:grid-cols-3 gap-8">
+        <div class="bg-zinc-950/50 border border-zinc-900 p-6 rounded-2xl hover:border-mauve/30 transition-colors group">
+          <code class="text-mauve text-sm mb-4 block group-hover:translate-x-1 transition-transform">utask ui</code>
+          <h4 class="text-white font-bold mb-2">Interface</h4>
+          <p class="text-xs text-zinc-500 leading-relaxed">Launch the full Textual TUI with all management features.</p>
+        </div>
+        <div class="bg-zinc-950/50 border border-zinc-900 p-6 rounded-2xl hover:border-mauve/30 transition-colors group">
+          <code class="text-mauve text-sm mb-4 block group-hover:translate-x-1 transition-transform">utask add "..."</code>
+          <h4 class="text-white font-bold mb-2">Natural Language</h4>
+          <p class="text-xs text-zinc-500 leading-relaxed">Quickly add tasks with intelligent date parsing from anywhere.</p>
+        </div>
+        <div class="bg-zinc-950/50 border border-zinc-900 p-6 rounded-2xl hover:border-mauve/30 transition-colors group">
+          <code class="text-mauve text-sm mb-4 block group-hover:translate-x-1 transition-transform">utask doctor</code>
+          <h4 class="text-white font-bold mb-2">Diagnostics</h4>
+          <p class="text-xs text-zinc-500 leading-relaxed">Verify system health, permissions, and sync connectivity.</p>
+        </div>
+      </div>
+    </section>
 		
 		<section id="install" class="max-w-5xl mx-auto py-40 px-6 text-center scroll-mt-32">
 			<div class="reveal">
@@ -153,7 +179,7 @@ import CookieBanner from '../components/CookieBanner.astro';
           </div>
           <div class="text-xl font-bold tracking-tighter text-white">utask<span class="text-mauve">.</span></div>
         </div>
-				<div class="text-zinc-600 text-[11px] uppercase tracking-widest font-bold">
+				<div class="text-zinc-600 text-[11px] uppercase tracking-widest font-bold text-center">
 					Build for the terminal elite. No bloat. Just speed.
 				</div>
 				<div class="flex gap-8 text-[10px] uppercase tracking-widest font-black">

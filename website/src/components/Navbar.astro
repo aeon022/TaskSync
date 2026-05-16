@@ -6,7 +6,7 @@
     class="max-w-fit mx-auto px-4 py-2 rounded-full border border-zinc-800/50 bg-[#050505]/40 backdrop-blur-xl shadow-2xl shadow-black/50 pointer-events-auto transition-all duration-500 ease-out flex items-center gap-8"
   >
     <!-- Logo -->
-    <a href="#" class="flex items-center gap-2.5 pl-2 group">
+    <a href="#" class="flex items-center gap-2.5 pl-2 group nav-link-scroll">
       <div class="w-7 h-7 rounded-lg bg-mauve/20 flex items-center justify-center border border-mauve/30 group-hover:bg-mauve/30 transition-all">
         <span class="text-mauve text-[10px] font-bold italic">u</span>
       </div>
@@ -15,12 +15,16 @@
     
     <!-- Navigation Links -->
     <div class="hidden md:flex items-center gap-6 text-[10px] uppercase tracking-[0.2em] font-bold text-zinc-500" id="nav-links">
+      <a href="#terminal" class="nav-link relative hover:text-white transition-colors py-1">
+        Interface
+        <span class="underline-bar absolute bottom-0 left-0 w-0 h-[1px] bg-mauve transition-all duration-300"></span>
+      </a>
       <a href="#features" class="nav-link relative hover:text-white transition-colors py-1">
         Features
         <span class="underline-bar absolute bottom-0 left-0 w-0 h-[1px] bg-mauve transition-all duration-300"></span>
       </a>
-      <a href="#terminal" class="nav-link relative hover:text-white transition-colors py-1">
-        Terminal
+      <a href="#commands" class="nav-link relative hover:text-white transition-colors py-1">
+        Commands
         <span class="underline-bar absolute bottom-0 left-0 w-0 h-[1px] bg-mauve transition-all duration-300"></span>
       </a>
       <a href="#install" class="nav-link relative hover:text-white transition-colors py-1">
@@ -36,7 +40,7 @@
       </a>
       <div class="h-4 w-[1px] bg-zinc-800"></div>
       <a href="#install" class="bg-white text-black text-[9px] uppercase tracking-widest font-black px-5 py-2 rounded-full hover:bg-mauve hover:text-white transition-all shadow-lg shadow-white/5">
-        Get utask
+        Get Access
       </a>
     </div>
   </nav>
@@ -54,7 +58,27 @@
 <script>
   const nav = document.getElementById('navbar');
   const links = document.querySelectorAll('.nav-link');
-  const sections = ['features', 'terminal', 'install'];
+  const sections = ['terminal', 'features', 'commands', 'install'];
+
+  // Smooth Scroll Helper
+  document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+    anchor.addEventListener('click', function (e) {
+      e.preventDefault();
+      const targetId = this.getAttribute('href');
+      const targetElement = targetId === '#' ? document.body : document.querySelector(targetId);
+      
+      if (targetElement) {
+        const offset = 100; // Extra offset for the floating navbar
+        const elementPosition = targetElement.getBoundingClientRect().top;
+        const offsetPosition = elementPosition + window.pageYOffset - offset;
+
+        window.scrollTo({
+          top: offsetPosition,
+          behavior: 'smooth'
+        });
+      }
+    });
+  });
 
   window.addEventListener('scroll', () => {
     // Navbar Shrink Effect
