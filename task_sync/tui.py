@@ -145,17 +145,26 @@ class TaskItem(ListItem):
 
     def watch_is_selected(self, value: bool) -> None:
         if value:
-            self.add_class("--highlight")
+            self.add_class("visual-selected")
         else:
-            self.remove_class("--highlight")
+            self.remove_class("visual-selected")
+        # Trigger recompose to update text marker
+        self.refresh()
+
+    def on_mount(self) -> None:
+        # Check initial selection state from app
+        if hasattr(self.app, "selected_ids"):
+            self.is_selected = self.task_id in self.app.selected_ids
 
     def compose(self) -> ComposeResult:
         icon = "☐   " if self.task_status != "completed" else "☑   "
+        visual_marker = "[V] " if self.is_selected else ""
         prio_marker = ["", "!", "!!"][self.priority]
         prio_class = ["", "prio-med", "prio-high"][self.priority]
-        content = f"{icon}{self.task_title}"
+        
+        content = f"{visual_marker}{icon}{self.task_title}"
         if prio_marker:
-            content = f"{icon}[{prio_class}]{prio_marker}[/] {self.task_title}"
+            content = f"{visual_marker}{icon}[{prio_class}]{prio_marker}[/] {self.task_title}"
         yield Label(content, classes="completed-task" if self.task_status == "completed" else "pending-task")
 
 class UniversalTaskApp(App):
@@ -602,14 +611,14 @@ class UniversalTaskApp(App):
             if view.index is not None and view.index < len(view.children) - 1:
                 view.index += 1
                 if self.visual_mode:
-                    self.selected_ids = self.selected_ids | {view.children[view.index].task_id}
+                    self.selected_ids = set(list(self.selected_ids) + [view.children[view.index].task_id])
 
     def action_cursor_up(self) -> None:
         for view in self.query("#task-list"):
             if view.index is not None and view.index > 0:
                 view.index -= 1
                 if self.visual_mode:
-                    self.selected_ids = self.selected_ids | {view.children[view.index].task_id}
+                    self.selected_ids = set(list(self.selected_ids) + [view.children[view.index].task_id])
 
 if __name__ == "__main__":
     UniversalTaskApp().run()

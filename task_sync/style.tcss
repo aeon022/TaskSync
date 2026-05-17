@@ -81,10 +81,11 @@ ListItem {
     transition: background 200ms in_out_cubic;
 }
 
-ListItem.--highlight {
-    background: $mauve 15%;
+ListItem.visual-selected {
+    background: $mauve 20%;
     color: $mauve;
     text-style: bold italic;
+    border-left: thick $mauve;
 }
 
 ListItem.selected {
