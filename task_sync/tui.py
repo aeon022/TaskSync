@@ -133,6 +133,8 @@ class InsightsScreen(ModalScreen):
             self.dismiss()
 
 class TaskItem(ListItem):
+    is_selected = reactive(False)
+
     def __init__(self, task: Task):
         super().__init__()
         self.task_id = task.id
@@ -140,6 +142,12 @@ class TaskItem(ListItem):
         self.task_status = task.status
         # Deterministic priority based on title
         self.priority = 2 if "!!" in self.task_title else (1 if "!" in self.task_title else 0)
+
+    def watch_is_selected(self, value: bool) -> None:
+        if value:
+            self.add_class("--highlight")
+        else:
+            self.remove_class("--highlight")
 
     def compose(self) -> ComposeResult:
         icon = "☐   " if self.task_status != "completed" else "☑   "
@@ -244,6 +252,14 @@ class UniversalTaskApp(App):
     def watch_is_syncing(self, value: bool) -> None:
         for header in self.query("#header-status"):
             header.update("  •  [ 🟡 BUSY ]" if value else "  •  [ 🟢 ONLINE ]")
+
+    def watch_selected_ids(self, value: Set[int]) -> None:
+        for item in self.query(TaskItem):
+            item.is_selected = item.task_id in value
+
+    def watch_current_list(self) -> None:
+        self.visual_mode = False
+        self.selected_ids = set()
 
     async def refresh_lists(self) -> None:
         for tree in self.query("#list-tree"):
@@ -370,7 +386,13 @@ class UniversalTaskApp(App):
 
     def action_toggle_visual(self) -> None:
         self.visual_mode = not self.visual_mode
-        if not self.visual_mode: self.selected_ids = set()
+        if self.visual_mode:
+            # Immediately select focused item
+            for view in self.query("#task-list"):
+                if view.index is not None:
+                    self.selected_ids = {view.children[view.index].task_id}
+        else:
+            self.selected_ids = set()
         self.notify(f"Visual Mode: {'ON' if self.visual_mode else 'OFF'}")
 
     async def action_delete_task(self) -> None:
@@ -579,13 +601,15 @@ class UniversalTaskApp(App):
         for view in self.query("#task-list"):
             if view.index is not None and view.index < len(view.children) - 1:
                 view.index += 1
-                if self.visual_mode: self.selected_ids.add(view.children[view.index].task_id)
+                if self.visual_mode:
+                    self.selected_ids = self.selected_ids | {view.children[view.index].task_id}
 
     def action_cursor_up(self) -> None:
         for view in self.query("#task-list"):
             if view.index is not None and view.index > 0:
                 view.index -= 1
-                if self.visual_mode: self.selected_ids.add(view.children[view.index].task_id)
+                if self.visual_mode:
+                    self.selected_ids = self.selected_ids | {view.children[view.index].task_id}
 
 if __name__ == "__main__":
     UniversalTaskApp().run()
