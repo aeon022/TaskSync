@@ -148,24 +148,31 @@ class TaskItem(ListItem):
             self.add_class("visual-selected")
         else:
             self.remove_class("visual-selected")
-        # Trigger recompose to update text marker
-        self.refresh()
+        
+        # Explicitly update the label content because refresh() doesn't re-compose
+        try:
+            label = self.query_one("#task-label", Label)
+            label.update(self._get_content())
+        except:
+            pass # Not mounted yet
 
     def on_mount(self) -> None:
-        # Check initial selection state from app
         if hasattr(self.app, "selected_ids"):
             self.is_selected = self.task_id in self.app.selected_ids
 
-    def compose(self) -> ComposeResult:
+    def _get_content(self) -> str:
         icon = "☐   " if self.task_status != "completed" else "☑   "
-        visual_marker = "[V] " if self.is_selected else ""
+        visual_marker = "[bold mauve][V][/] " if self.is_selected else ""
         prio_marker = ["", "!", "!!"][self.priority]
         prio_class = ["", "prio-med", "prio-high"][self.priority]
         
         content = f"{visual_marker}{icon}{self.task_title}"
         if prio_marker:
             content = f"{visual_marker}{icon}[{prio_class}]{prio_marker}[/] {self.task_title}"
-        yield Label(content, classes="completed-task" if self.task_status == "completed" else "pending-task")
+        return content
+
+    def compose(self) -> ComposeResult:
+        yield Label(self._get_content(), id="task-label", classes="completed-task" if self.task_status == "completed" else "pending-task")
 
 class UniversalTaskApp(App):
     CSS_PATH = "style.tcss"

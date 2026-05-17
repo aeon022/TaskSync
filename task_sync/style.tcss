@@ -82,10 +82,10 @@ ListItem {
 }
 
 ListItem.visual-selected {
-    background: $mauve 20%;
-    color: $mauve;
+    background: $mauve 30%;
+    color: white;
     text-style: bold italic;
-    border-left: thick $mauve;
+    border-left: thick white;
 }
 
 ListItem.selected {
