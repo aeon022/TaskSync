@@ -86,7 +86,10 @@ Starte das Interface mit: `utask ui`
     *   **`SPACE`**: Alle markierten erledigen.
     *   **`d`**: Alle markierten löschen.
     *   **`S`**: Alle markierten auf "Morgen" verschieben (Postpone).
-*   **`:`**: **Command Bar** – Profi-Befehle wie `:move <Label>` (Task zu anderem Provider schieben).
+*   **`:`**: **Command Bar** – Profi-Befehle:
+    *   `:create list "Name" [Provider]` (z.B. `:create list "Einkauf" Google`)
+    *   `:delete list "Name"`
+    *   `:move <Label>` (Task zu anderem Provider schieben)
 
 ---
 

@@ -550,6 +550,19 @@ class UniversalTaskApp(App):
                 list_name = raw_cmd[11:].strip().strip('"').strip("'")
                 if list_name: await self.action_delete_list(list_name)
                 else: self.notify("Please specify a list name", severity="error")
+            elif cmd.startswith("create list "):
+                parts = raw_cmd[12:].strip().split('"')
+                # Extract name inside quotes if present
+                if len(parts) >= 3:
+                    lname = parts[1]
+                    plabel = parts[2].strip() or "Apple"
+                else:
+                    sub_parts = raw_cmd[12:].strip().split()
+                    lname = sub_parts[0] if sub_parts else ""
+                    plabel = sub_parts[1] if len(sub_parts) > 1 else "Apple"
+                
+                if lname: await self.action_create_list(lname, plabel)
+                else: self.notify("Usage: create list \"Name\" [Provider]", severity="error")
             elif cmd.startswith("move "):
                 target_label = raw_cmd[5:].strip().strip('"').strip("'")
                 if target_label: await self.action_magic_move(target_label)
@@ -603,6 +616,16 @@ class UniversalTaskApp(App):
             self.notify(f"Successfully moved {success_count} tasks to {target_label}!")
         else:
             self.notify(f"Failed to move tasks. Check if provider '{target_label}' exists.", severity="error")
+
+    async def action_create_list(self, name: str, provider_label: str) -> None:
+        self.notify(f"Creating list '{name}' on {provider_label}...")
+        from .main import get_engine
+        success = await get_engine().create_list(name, provider_label)
+        if success:
+            await self.refresh_lists()
+            self.notify(f"✅ List '{name}' created on {provider_label}")
+        else:
+            self.notify(f"❌ Failed to create list on {provider_label}. Check if provider exists.", severity="error")
 
     def action_cancel_input(self) -> None:
         for container in self.query("#command-container"): container.remove_class("visible")

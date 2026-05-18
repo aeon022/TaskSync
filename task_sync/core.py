@@ -250,6 +250,26 @@ class SyncEngine:
             await session.commit()
         return success_count
 
+    async def create_list(self, name: str, provider_label: str = "Apple") -> bool:
+        """Creates a new list on a specific provider."""
+        provider = next((p for p in self.providers if p.account_label.lower() == provider_label.lower()), None)
+        if not provider:
+            return False
+            
+        try:
+            success = await provider.create_list(name)
+            if success:
+                async with AsyncSessionLocal() as session:
+                    # Add to local cache to make it visible immediately
+                    full_name = f"[{provider.account_label}] {name}"
+                    session.add(TaskList(name=full_name, provider_name=provider.name))
+                    await session.commit()
+                return True
+        except Exception as e:
+            logger.error(f"Failed to create list '{name}' on {provider_label}: {e}")
+            
+        return False
+
 async def daemon_loop(engine: SyncEngine, interval: int = 300):
     while True:
         try:
