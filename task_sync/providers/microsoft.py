@@ -113,7 +113,12 @@ class MicrosoftToDoProvider:
                 return r.status == 204
 
     async def create_list(self, name: str) -> bool:
-        return False
+        headers = await self._headers()
+        if not headers: return False
+        async with aiohttp.ClientSession() as session:
+            payload = {"displayName": name}
+            async with session.post('https://graph.microsoft.com/v1.0/me/todo/lists', headers=headers, json=payload) as r:
+                return r.status == 201
 
     async def delete_list(self, name: str) -> bool:
         headers = await self._headers()

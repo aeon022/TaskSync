@@ -86,6 +86,39 @@ def create_task(title: str, list_name: str) -> Optional[str]:
         return reminder.calendarItemExternalIdentifier()
     return None
 
+def create_list(name: str) -> bool:
+    """Erstellt eine neue Liste (Calendar) in Apple Erinnerungen."""
+    if not is_mac(): return False
+    from EventKit import EKCalendar, EKEntityTypeReminder
+    store = get_event_store()
+    if not store: return False
+
+    # Existiert die Liste bereits?
+    existing = get_lists()
+    if name in existing: return True
+
+    # Neue Liste erstellen
+    new_cal = EKCalendar.calendarForEntityType_eventStore_(EKEntityTypeReminder, store)
+    new_cal.setTitle_(name)
+    
+    # Einen passenden Speicherort (Source) finden
+    # Wir nehmen die Source des Standard-Kalenders oder die erste iCloud/Local Source
+    default_cal = store.defaultCalendarForNewReminders()
+    if default_cal:
+        new_cal.setSource_(default_cal.source())
+    else:
+        # Fallback: Suche nach einer lokalen oder iCloud Source
+        from EventKit import EKSourceTypeLocal, EKSourceTypeICloud
+        sources = store.sources()
+        target_source = next((s for s in sources if s.sourceType() == EKSourceTypeICloud), None)
+        if not target_source:
+            target_source = next((s for s in sources if s.sourceType() == EKSourceTypeLocal), None)
+        if not target_source: return False
+        new_cal.setSource_(target_source)
+
+    success, error = store.saveCalendar_commit_error_(new_cal, True, None)
+    return bool(success)
+
 def delete_list(name: str) -> bool:
     """Löscht eine Liste in Apple Erinnerungen."""
     if not is_mac(): return False

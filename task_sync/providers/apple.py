@@ -41,7 +41,7 @@ class AppleRemindersProvider(Provider):
         return False
 
     async def create_list(self, name: str) -> bool:
-        return False
+        return await asyncio.to_thread(api_apple.create_list, name)
     
     async def delete_list(self, name: str) -> bool:
         return await asyncio.to_thread(api_apple.delete_list, name)
