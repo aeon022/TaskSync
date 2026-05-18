@@ -30,12 +30,22 @@ Das Setup erstellt einen Wrapper in `~/.local/bin/utask`. Stelle sicher, dass di
 ## 🔄 Cross-Device Sync (iCloud Integration)
 
 `utask` unterstützt die Synchronisation deiner Account-Konfiguration über mehrere Macs hinweg.
-
 ### 1. Shared Config aktivieren
 Verschiebe deine Provider-Liste in den iCloud Drive (oder einen anderen Cloud-Ordner), um auf allen Geräten dieselben Listen zu sehen:
 ```bash
 utask config set-shared "~/Library/Mobile Documents/com~apple~CloudDocs/utask"
 ```
+
+### 2. Quick Guide: Sync auf einem neuen Mac
+Wenn du utask auf einem weiteren Mac (z.B. Mac Studio oder MacBook) einrichtest:
+1.  **Repo klonen & Setup:** `git clone ...` und `./setup.sh` ausführen.
+2.  **Shared Path setzen:** Führe den obigen `set-shared` Befehl mit demselben Pfad aus.
+3.  **Verifizieren:** `utask config show` (Der Pfad muss auf deinen iCloud-Ordner zeigen).
+4.  **Erster Sync:** `utask sync` (Erkennt automatisch alle Provider aus der Cloud).
+
+*Hinweis: Deine Passwörter/Tokens werden sicher über den **iCloud Schlüsselbund** synchronisiert.*
+
+---
 
 ### 2. Funktionsweise
 *   **`providers.json`**: Wird im Shared Directory gespeichert und hält deine Accounts synchron.
