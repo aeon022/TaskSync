@@ -80,6 +80,24 @@ Starte das Interface mit: `utask ui`
 *   **`d`**: Markierte Aufgabe löschen.
 *   **`u`**: Letzte Löschung rückgängig machen (Undo-Stack).
 *   **`/`**: Schnellsuche (Fuzzy-Filter für die aktuelle Liste).
+*   **`p`**: **Focus Mode (Pomodoro)** – 25min Zen-Timer für den aktuellen Task.
+*   **`i`**: **Insights** – Produktivitäts-Statistiken anzeigen.
+*   **`v`**: **Visual Mode** – Mehrere Tasks markieren für Bulk-Actions:
+    *   **`SPACE`**: Alle markierten erledigen.
+    *   **`d`**: Alle markierten löschen.
+    *   **`S`**: Alle markierten auf "Morgen" verschieben (Postpone).
+*   **`:`**: **Command Bar** – Profi-Befehle wie `:move <Label>` (Task zu anderem Provider schieben).
+
+---
+
+## 🏥 System-Diagnose
+
+Wenn etwas nicht rund läuft oder du einen neuen Mac einrichtest, hilft der Doctor-Befehl:
+
+```bash
+utask doctor
+```
+Er prüft Schreibrechte, die Erreichbarkeit deines iCloud-Pfads, den Status des Hintergrund-Daemons und die Gültigkeit deiner API-Tokens.
 
 ---
 

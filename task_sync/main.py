@@ -154,8 +154,11 @@ def list_tasks():
     asyncio.run(run())
 
 @app.command()
-def add(title: str, list_name: str = "Apple"):
-    """Add a new task with NLP date parsing (e.g. 'Meeting morgen 15:00')."""
+def add(title: str, list_name: str = typer.Option("Apple", help="Target list name (e.g. 'Privat' or 'Tasks')")):
+    """
+    Add a new task with NLP date parsing.
+    Examples: 'Meeting morgen 15:00', 'Pizza essen in 2 days', 'Project review next friday'
+    """
     from .core import AsyncSessionLocal, init_db, TaskList
     from .models import Task
     import dateparser
