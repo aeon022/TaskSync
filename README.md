@@ -62,6 +62,15 @@ Füge deine Accounts mit individuellen Labels hinzu:
 *   **Microsoft To Do**: `utask auth-microsoft --client-id "DEINE_ID" --label "Arbeit"`.
 *   **Apple Reminders**: Wird auf macOS automatisch erkannt.
 
+### Verbindung erneuern (Re-Authorization)
+Sollte ein Provider nicht mehr synchronisieren (z.B. Fehler `invalid_grant` im Log), muss die Verbindung neu autorisiert werden. Führe dazu einfach den ursprünglichen Auth-Befehl mit demselben Label erneut aus:
+
+```bash
+# Beispiel für Google Re-Auth
+utask auth-google --label "Google"
+```
+**Hinweis:** Dank der integrierten **Safety-Sync** Logik bleiben deine lokalen Aufgaben bei Authentifizierungsfehlern erhalten und werden nicht gelöscht.
+
 ---
 
 ## ⌨️ TUI Steuerung (Elite Interface)
