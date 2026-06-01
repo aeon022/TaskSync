@@ -90,6 +90,46 @@ import CookieBanner from '../components/CookieBanner.astro';
           </p>
         </div>
       </div>
+
+      <!-- Section 3: Templates & Automation -->
+      <div class="grid md:grid-cols-2 gap-12 items-center reveal">
+        <div>
+          <div class="text-blue text-xs font-bold uppercase tracking-[0.3em] mb-4">Automation</div>
+          <h2 class="text-4xl font-bold text-white mb-6 leading-tight">Elite Workflow with <br/> Templates.</h2>
+          <p class="text-zinc-400 text-lg leading-relaxed mb-8">
+            Stop re-typing common tasks. Create global templates once and instantiate them anywhere with a short command. Perfect for recurring deployments, weekly reviews, or complex project kickoffs.
+          </p>
+          <div class="space-y-4">
+            <div class="bg-zinc-950/50 border border-zinc-900 p-4 rounded-xl">
+              <div class="text-mauve text-xs font-mono mb-2">:template add "daily" "Morgen-Routine" "Check logs and sync"</div>
+              <p class="text-[10px] text-zinc-500 italic">Save a new template globally.</p>
+            </div>
+            <div class="bg-zinc-950/50 border border-zinc-900 p-4 rounded-xl">
+              <div class="text-mauve text-xs font-mono mb-2">:use "daily"</div>
+              <p class="text-[10px] text-zinc-500 italic">Instantiate into current provider list.</p>
+            </div>
+          </div>
+        </div>
+        <div class="bg-[#0b0b0b] border border-zinc-800 p-8 rounded-3xl border-glow relative overflow-hidden">
+            <div class="flex items-center gap-4 mb-8">
+                <div class="w-3 h-3 rounded-full bg-mauve/40"></div>
+                <div class="text-[10px] text-zinc-600 uppercase tracking-widest">Automation Engine Active</div>
+            </div>
+            <div class="space-y-6">
+                <div class="flex gap-4 opacity-50">
+                    <span class="text-zinc-700 italic">... waiting for command</span>
+                </div>
+                <div class="flex gap-4">
+                    <span class="text-mauve font-bold">❯</span>
+                    <span class="text-zinc-100 font-mono text-sm">Created task 'Morgen-Routine' on Google.</span>
+                </div>
+                <div class="flex gap-4">
+                    <span class="text-mauve font-bold">❯</span>
+                    <span class="text-zinc-100 font-mono text-sm text-green-400">Next instance spawned: Weekly Review.</span>
+                </div>
+            </div>
+        </div>
+      </div>
     </section>
 
     <!-- Commands Section -->
