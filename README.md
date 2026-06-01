@@ -88,7 +88,7 @@ Starte das Interface mit: `utask ui`
 *   **`a`**: Schnelles Hinzufügen einer neuen Aufgabe.
 *   **`d`**: Markierte Aufgabe löschen.
 *   **`u`**: Letzte Löschung rückgängig machen (Undo-Stack).
-*   **`/`**: Schnellsuche (Fuzzy-Filter für die aktuelle Liste).
+*   **`/`**: **Globale Fuzzy-Search** – Suche über alle Listen und Provider hinweg.
 *   **`p`**: **Focus Mode (Pomodoro)** – 25min Zen-Timer für den aktuellen Task.
 *   **`i`**: **Insights** – Produktivitäts-Statistiken anzeigen.
 *   **`v`**: **Visual Mode** – Mehrere Tasks markieren für Bulk-Actions:
@@ -96,9 +96,18 @@ Starte das Interface mit: `utask ui`
     *   **`d`**: Alle markierten löschen.
     *   **`S`**: Alle markierten auf "Morgen" verschieben (Postpone).
 *   **`:`**: **Command Bar** – Profi-Befehle:
-    *   `:create list "Name" [Provider]` (z.B. `:create list "Einkauf" Google`)
-    *   `:delete list "Name"`
+    *   `:theme <flavor>` (Mocha, Macchiato, Frappe, Latte)
+    *   `:recur <freq>` (daily, weekly, monthly, none)
+    *   `:template add "Name" "Title" "Desc"` (Eigene Vorlagen erstellen)
+    *   `:use "Name"` (Aufgabe aus Vorlage in aktueller Liste erstellen)
+    *   `:create list "Name" [Provider]`
     *   `:move <Label>` (Task zu anderem Provider schieben)
+    *   `:log` (Sync-Historie & Konflikte anzeigen)
+
+### Arbeiten mit Templates (Pro-Workflow)
+Templates erlauben dir, komplexere Aufgabenstrukturen vorzubereiten und sie mit einem kurzen Befehl überall einzufügen:
+1. **Vorlage erstellen:** `:template add "dev" "Code Review" "Review PRs and merge to main"`
+2. **Vorlage nutzen:** In eine Liste navigieren (z.B. Google Tasks) und `:use "dev"` eingeben. utask erstellt sofort den Task inkl. Beschreibung in dieser Liste.
 
 ---
 

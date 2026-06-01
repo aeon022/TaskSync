@@ -253,9 +253,11 @@ class UniversalTaskApp(App):
     selected_ids: reactive[Set[int]] = reactive(set())
     undo_stack: List[tuple] = []
     is_syncing = reactive(False)
-    current_theme = reactive("mocha")
+    theme_flavor = reactive("mocha")
 
-    def watch_current_theme(self, value: str) -> None:
+    def watch_theme_flavor(self, value: str) -> None:
+        if not self.is_mounted:
+            return
         self.remove_class("theme-mocha")
         self.remove_class("theme-macchiato")
         self.remove_class("theme-frappe")
@@ -298,8 +300,11 @@ class UniversalTaskApp(App):
             from .config import CONFIG_DIR
             theme_file = CONFIG_DIR / "theme.txt"
             if theme_file.exists():
-                self.current_theme = theme_file.read_text().strip()
+                self.theme_flavor = theme_file.read_text().strip()
         except: pass
+        
+        # Apply theme class manually for initial mount
+        self.add_class(f"theme-{self.theme_flavor}")
 
         await self.refresh_lists()
         tree = self.query_one("#list-tree", Tree)
@@ -670,7 +675,7 @@ class UniversalTaskApp(App):
             elif cmd.startswith("theme "):
                 flavor = raw_cmd[6:].strip().lower()
                 if flavor in ("mocha", "macchiato", "frappe", "latte"):
-                    self.current_theme = flavor
+                    self.theme_flavor = flavor
                     self.notify(f"Theme switched to {flavor.capitalize()}")
                 else:
                     self.notify("Invalid theme. Use mocha, macchiato, frappe, or latte.", severity="error")
