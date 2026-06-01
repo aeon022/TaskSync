@@ -22,7 +22,7 @@ class HelpScreen(ModalScreen):
     def compose(self) -> ComposeResult:
         base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
         readme_path = os.path.join(base_dir, "README.md")
-        content = "# 🛰️ utask v2.0 Manual\n\nREADME not found."
+        content = "# 🛰️ utask v2.1 Manual\n\nREADME not found."
         if os.path.exists(readme_path):
             try:
                 with open(readme_path, "r", encoding="utf-8") as f:
@@ -31,7 +31,7 @@ class HelpScreen(ModalScreen):
             except: pass
         
         with Vertical(id="help-dialog"):
-            yield Label(" 📖   utask v2.0 - Documentation (ESC/Q to exit) ", id="help-header")
+            yield Label(" 📖   utask v2.1 - Documentation (ESC/Q to exit) ", id="help-header")
             with ScrollableContainer(id="help-scroll"):
                 yield Markdown(content, id="help-markdown")
 
@@ -160,7 +160,9 @@ class FuzzySearchScreen(ModalScreen):
                 tasks = res.scalars().all()
                 
                 for task in tasks:
-                    item = ListItem(Label(f"{task.title} [dim]({task.list_name})[/]"))
+                    status_icon = "☑ " if task.status == "completed" else "☐ "
+                    label_text = f"{status_icon}{task.title} [dim]({task.list_name})[/]"
+                    item = ListItem(Label(label_text, classes="completed-task" if task.status == "completed" else ""))
                     # Store metadata on the item for retrieval
                     item.task_id = task.id
                     item.list_name = task.list_name
@@ -270,7 +272,7 @@ class UniversalTaskApp(App):
 
     def compose(self) -> ComposeResult:
         with Horizontal(id="header-stats"):
-            yield Static("🚀 utask v2.0  •  ", id="header-title")
+            yield Static("🚀 utask v2.1  •  ", id="header-title")
             yield Sparkline([0]*20, summary_function=max)
             yield Static("  •  [ 🟢 ONLINE ]", id="header-status")
         
