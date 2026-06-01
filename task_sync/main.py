@@ -183,6 +183,7 @@ def add(title: str, list_name: str = typer.Option("Apple", help="Target list nam
                 title=title, 
                 list_name=effective_list,
                 due_date=parsed_date,
+                sync_pending=True,
                 last_modified=datetime.now(timezone.utc)
             )
             session.add(new_task)

@@ -87,6 +87,7 @@ class FocusScreen(ModalScreen):
             self.dismiss(self.task_id)
 
 class InsightsScreen(ModalScreen):
+    # ... existing InsightsScreen implementation ...
     """Productivity Insights Dashboard Screen."""
     def compose(self) -> ComposeResult:
         with Vertical(id="insights-dialog"):
@@ -131,6 +132,49 @@ class InsightsScreen(ModalScreen):
     def on_key(self, event) -> None:
         if event.key in ("escape", "q"):
             self.dismiss()
+
+class FuzzySearchScreen(ModalScreen):
+    """Global Fuzzy Search Modal."""
+    def compose(self) -> ComposeResult:
+        with Vertical(id="fuzzy-dialog"):
+            yield Label(" 🔍   GLOBAL SEARCH ", id="fuzzy-header")
+            yield Input(placeholder="Type to find tasks across all lists...", id="fuzzy-input")
+            yield ListView(id="fuzzy-results")
+            yield Label(" [ENTER] Jump to Task  |  [ESC] Cancel ", id="fuzzy-footer")
+
+    def on_mount(self) -> None:
+        self.query_one("#fuzzy-input").focus()
+
+    async def on_input_changed(self, event: Input.Changed) -> None:
+        if event.input.id == "fuzzy-input":
+            query = event.value.strip()
+            results_view = self.query_one("#fuzzy-results", ListView)
+            results_view.clear()
+            
+            if len(query) < 2:
+                return
+
+            async with AsyncSessionLocal() as session:
+                statement = select(Task).where(Task.title.contains(query)).limit(20)
+                res = await session.execute(statement)
+                tasks = res.scalars().all()
+                
+                for task in tasks:
+                    item = ListItem(Label(f"{task.title} [dim]({task.list_name})[/]"))
+                    # Store metadata on the item for retrieval
+                    item.task_id = task.id
+                    item.list_name = task.list_name
+                    results_view.append(item)
+
+    def on_list_view_selected(self, event: ListView.Selected) -> None:
+        if event.list_view.id == "fuzzy-results":
+            item = event.item
+            # Return selection data to main app
+            self.dismiss({"task_id": item.task_id, "list_name": item.list_name})
+
+    def on_key(self, event) -> None:
+        if event.key == "escape":
+            self.dismiss(None)
 
 class TaskItem(ListItem):
     is_selected = reactive(False)
@@ -191,7 +235,7 @@ class UniversalTaskApp(App):
         Binding("d", "delete_task", "Delete"),
         Binding("u", "undo", "Undo"),
         Binding("a", "focus_add", "Add"),
-        Binding("slash", "focus_search", "Search"),
+        Binding("slash", "global_search", "Search"),
         Binding("h", "toggle_completed_visibility", "Hide Done"),
         Binding("colon", "focus_command", "Command"),
         Binding(":", "focus_command", "Command", show=False),
@@ -209,6 +253,18 @@ class UniversalTaskApp(App):
     selected_ids: reactive[Set[int]] = reactive(set())
     undo_stack: List[tuple] = []
     is_syncing = reactive(False)
+    current_theme = reactive("mocha")
+
+    def watch_current_theme(self, value: str) -> None:
+        self.remove_class("theme-mocha")
+        self.remove_class("theme-macchiato")
+        self.remove_class("theme-frappe")
+        self.remove_class("theme-latte")
+        self.add_class(f"theme-{value}")
+        try:
+            from .config import CONFIG_DIR
+            (CONFIG_DIR / "theme.txt").write_text(value)
+        except: pass
 
     def compose(self) -> ComposeResult:
         with Horizontal(id="header-stats"):
@@ -237,6 +293,14 @@ class UniversalTaskApp(App):
 
     async def on_mount(self) -> None:
         await init_db()
+        # Load theme
+        try:
+            from .config import CONFIG_DIR
+            theme_file = CONFIG_DIR / "theme.txt"
+            if theme_file.exists():
+                self.current_theme = theme_file.read_text().strip()
+        except: pass
+
         await self.refresh_lists()
         tree = self.query_one("#list-tree", Tree)
         if tree.root.children:
@@ -382,6 +446,7 @@ class UniversalTaskApp(App):
                 task = await session.get(Task, tid)
                 if task:
                     task.status = "completed" if task.status != "completed" else "needsAction"
+                    task.sync_pending = True
                     task.last_modified = datetime.now(timezone.utc)
                     session.add(task)
             await session.commit()
@@ -492,6 +557,7 @@ class UniversalTaskApp(App):
                 task = await session.get(Task, tid)
                 if task:
                     task.due_date = tomorrow
+                    task.sync_pending = True
                     task.last_modified = datetime.now(timezone.utc)
                     session.add(task)
             await session.commit()
@@ -533,6 +599,40 @@ class UniversalTaskApp(App):
     def action_show_insights(self) -> None:
         if not isinstance(self.screen, InsightsScreen): self.push_screen(InsightsScreen())
 
+    def action_global_search(self) -> None:
+        self.push_screen(FuzzySearchScreen(), callback=self.handle_jump_to_task)
+
+    async def handle_jump_to_task(self, result: Optional[dict]) -> None:
+        if result:
+            target_list = result["list_name"]
+            target_id = result["task_id"]
+            
+            # 1. Switch list
+            self.current_list = target_list
+            
+            # 2. Select node in tree (visual)
+            for tree in self.query("#list-tree"):
+                # We need to find the node with data == target_list
+                def find_and_select(node):
+                    if node.data == target_list:
+                        tree.select_node(node)
+                        return True
+                    for child in node.children:
+                        if find_and_select(child): return True
+                    return False
+                find_and_select(tree.root)
+
+            # 3. Refresh tasks
+            await self.refresh_tasks()
+            
+            # 4. Focus and highlight the specific task in the list
+            for view in self.query("#task-list"):
+                for idx, child in enumerate(view.children):
+                    if getattr(child, "task_id", None) == target_id:
+                        view.index = idx
+                        view.focus()
+                        break
+
     def on_input_changed(self, event: Input.Changed) -> None:
         if event.input.id == "search-input":
             self.search_filter = event.value.strip()
@@ -567,11 +667,73 @@ class UniversalTaskApp(App):
                 target_label = raw_cmd[5:].strip().strip('"').strip("'")
                 if target_label: await self.action_magic_move(target_label)
                 else: self.notify("Please specify a target provider label", severity="error")
+            elif cmd.startswith("theme "):
+                flavor = raw_cmd[6:].strip().lower()
+                if flavor in ("mocha", "macchiato", "frappe", "latte"):
+                    self.current_theme = flavor
+                    self.notify(f"Theme switched to {flavor.capitalize()}")
+                else:
+                    self.notify("Invalid theme. Use mocha, macchiato, frappe, or latte.", severity="error")
+            elif cmd.startswith("template add "):
+                # Usage: :template add "Name" "Title" "Desc"
+                parts = raw_cmd[13:].strip().split('"')
+                if len(parts) >= 5:
+                    t_name = parts[1]; t_title = parts[3]; t_desc = parts[5]
+                    async with AsyncSessionLocal() as session:
+                        session.add(TaskTemplate(name=t_name, title=t_title, description=t_desc, list_name=self.current_list))
+                        await session.commit()
+                    self.notify(f"Template '{t_name}' saved")
+                else: self.notify("Usage: :template add \"Name\" \"Title\" \"Description\"", severity="error")
+            elif cmd.startswith("use "):
+                t_name = raw_cmd[4:].strip().strip('"')
+                async with AsyncSessionLocal() as session:
+                    stmt = select(TaskTemplate).where(TaskTemplate.name == t_name)
+                    res = await session.execute(stmt)
+                    tpl = res.scalar_one_or_none()
+                    if tpl:
+                        session.add(Task(title=tpl.title, description=tpl.description, list_name=tpl.list_name or self.current_list))
+                        await session.commit()
+                        self.notify(f"Created task from template '{t_name}'")
+                        await self.refresh_tasks()
+                    else: self.notify(f"Template '{t_name}' not found", severity="error")
+            elif cmd.startswith("recur "):
+                freq = raw_cmd[6:].strip().lower()
+                if freq in ("daily", "weekly", "monthly", "none"):
+                    freq = None if freq == "none" else freq
+                    for view in self.query("#task-list"):
+                        if view.index is not None:
+                            task_id = view.children[view.index].task_id
+                            async with AsyncSessionLocal() as session:
+                                task = await session.get(Task, task_id)
+                                if task:
+                                    task.recurrence = freq
+                                    session.add(task)
+                                    await session.commit()
+                            self.notify(f"Recurrence set to {freq}")
+                            await self.refresh_tasks()
+                else: self.notify("Usage: :recur [daily|weekly|monthly|none]", severity="error")
+            elif cmd == "log":
+                self.push_screen(HelpScreen()) # Placeholder: Use a real log screen later or repurpose Help
+                async with AsyncSessionLocal() as session:
+                    stmt = select(SyncLog).order_by(SyncLog.timestamp.desc()).limit(20)
+                    logs = (await session.execute(stmt)).scalars().all()
+                    content = "# 🛰️ Sync History\n\n"
+                    if logs:
+                        for l in logs:
+                            content += f"**[{l.timestamp.strftime('%H:%M:%S')}]** {l.event}: {l.details}\n"
+                    else:
+                        content += "*No sync events recorded yet.*"
+                    # We reuse HelpScreen for a quick log view
+                    self.push_screen(HelpScreen())
+                    for detail in self.query("#help-markdown"):
+                        await detail.update(content)
+                    for header in self.query("#help-header"):
+                        header.update(" 📜   SYNC HISTORY (ESC/Q to exit) ")
         elif event.input.id == "add-task-input":
             title = event.value.strip()
             if title:
                 async with AsyncSessionLocal() as session:
-                    session.add(Task(title=title, list_name=self.current_list))
+                    session.add(Task(title=title, list_name=self.current_list, sync_pending=True))
                     await session.commit()
                 event.input.value = ""; event.input.add_class("hidden")
                 await self.refresh_tasks()

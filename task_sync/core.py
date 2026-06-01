@@ -9,10 +9,11 @@ from datetime import datetime, timezone
 from sqlmodel import SQLModel, select, delete
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
 from sqlalchemy.orm import sessionmaker
-
-from .models import Task, SyncMapping, TaskList
+from .models import Task, SyncMapping, TaskList, TaskTemplate, SyncLog
 
 # Default config directory
+# ...
+
 CONFIG_DIR = Path.home() / ".config" / "tasksync"
 LOG_FILE = CONFIG_DIR / "daemon.log"
 os.makedirs(CONFIG_DIR, exist_ok=True)
@@ -98,7 +99,42 @@ class SyncEngine:
             await session.commit()
 
         await self._propagate()
+        await self.check_recurrence() # Trigger recurrence check after sync
         logger.info("Sync complete.")
+
+    async def check_recurrence(self):
+        """Checks for completed recurring tasks and spawns new instances."""
+        from datetime import timedelta
+        async with AsyncSessionLocal() as session:
+            stmt = select(Task).where(Task.status == "completed", Task.recurrence != None)
+            res = await session.execute(stmt)
+            tasks = res.scalars().all()
+            
+            for task in tasks:
+                logger.info(f"Spawning next instance for recurring task: {task.title}")
+                # Calculate next due date
+                next_due = None
+                if task.due_date:
+                    if task.recurrence == "daily": next_due = task.due_date + timedelta(days=1)
+                    elif task.recurrence == "weekly": next_due = task.due_date + timedelta(weeks=1)
+                    elif task.recurrence == "monthly": next_due = task.due_date + timedelta(days=30) # Simple approximation
+
+                # Create new instance
+                new_task = Task(
+                    title=task.title,
+                    description=task.description,
+                    list_name=task.list_name,
+                    status="needsAction",
+                    due_date=next_due,
+                    recurrence=task.recurrence,
+                    source_provider=task.source_provider
+                )
+                session.add(new_task)
+                # Clear recurrence on completed one
+                task.recurrence = None
+                session.add(task)
+            
+            await session.commit()
 
     async def _update_local_db(self, provider_name: str, remote_tasks: List[Any], display_name: str):
         now_utc = datetime.now(timezone.utc)
@@ -127,6 +163,7 @@ class SyncEngine:
                             task.last_modified = rt_modified
                             task.list_name = display_name
                             session.add(task)
+                            session.add(SyncLog(task_id=task.id, event="REMOTE_UPDATED", details=f"Pulled update from {provider_name}"))
                         mapping.last_sync = now_utc
                         session.add(mapping)
                 else:
@@ -142,6 +179,7 @@ class SyncEngine:
                     session.add(new_task)
                     await session.flush()
                     session.add(SyncMapping(task_id=new_task.id, provider_name=provider_name, remote_id=rt.remote_id, last_sync=now_utc))
+                    session.add(SyncLog(task_id=new_task.id, event="REMOTE_PULLED", details=f"Pulled new task from {provider_name}"))
             
             # Local deletions: only delete if task was in THIS list but is now gone from remote
             deleted_ids = set(existing_mappings.keys()) - seen_remote_ids
@@ -157,47 +195,47 @@ class SyncEngine:
         """Propagate local changes back to remotes, stripping prefixes for API calls."""
         now_utc = datetime.now(timezone.utc)
         async with AsyncSessionLocal() as session:
-            result = await session.execute(select(Task))
+            # Look for tasks modified after their last sync or with sync_pending=True
+            result = await session.execute(select(Task).where(Task.sync_pending == True))
             tasks = result.scalars().all()
             
             for task in tasks:
                 task_modified = task.last_modified.replace(tzinfo=timezone.utc) if task.last_modified.tzinfo is None else task.last_modified
-                
-                # Extract real list name by removing prefix like "[FH] "
                 real_list_name = task.list_name
                 if "]" in task.list_name:
                     real_list_name = task.list_name.split("]", 1)[1].strip()
 
                 for provider in self.providers:
-                    # We only propagate to the provider that matches the prefix
                     expected_prefix = f"[{provider.account_label}]"
                     if not task.list_name.startswith(expected_prefix):
                         continue
 
-                    map_res = await session.execute(select(SyncMapping).where(
+                    mapping_stmt = select(SyncMapping).where(
                         SyncMapping.task_id == task.id, 
                         SyncMapping.provider_name == provider.name
-                    ))
-                    mapping = map_res.scalar_one_or_none()
+                    )
+                    mapping = (await session.execute(mapping_stmt)).scalar_one_or_none()
                     
-                    if not mapping:
-                        try:
+                    try:
+                        if not mapping:
                             remote_id = await provider.create_task(task.title, real_list_name)
                             if remote_id:
                                 session.add(SyncMapping(task_id=task.id, provider_name=provider.name, remote_id=remote_id, last_sync=now_utc))
                                 if task.status == "completed":
                                     await provider.update_task(remote_id, status="completed")
-                        except Exception as e:
-                            logger.error(f"Failed creation propagate: {e}")
-                    else:
-                        last_sync = mapping.last_sync.replace(tzinfo=timezone.utc) if mapping.last_sync.tzinfo is None else mapping.last_sync
-                        if task_modified > last_sync:
-                            try:
-                                if await provider.update_task(mapping.remote_id, title=task.title, status=task.status):
-                                    mapping.last_sync = now_utc
-                                    session.add(mapping)
-                            except Exception as e:
-                                logger.error(f"Failed update propagate: {e}")
+                                session.add(SyncLog(task_id=task.id, event="REMOTE_CREATED", details=f"Created on {provider.name}"))
+                        else:
+                            if await provider.update_task(mapping.remote_id, title=task.title, status=task.status):
+                                mapping.last_sync = now_utc
+                                session.add(mapping)
+                                session.add(SyncLog(task_id=task.id, event="REMOTE_UPDATED", details=f"Updated on {provider.name}"))
+                        
+                        task.sync_pending = False
+                        session.add(task)
+                    except Exception as e:
+                        logger.error(f"Failed propagation: {e}")
+                        session.add(SyncLog(task_id=task.id, event="SYNC_ERROR", details=str(e)))
+            
             await session.commit()
 
     async def delete_list(self, display_name: str):
