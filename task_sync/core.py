@@ -47,11 +47,13 @@ class SyncEngine:
         logger.info("Starting prefixed sync...")
         
         all_remote_display_names = set()
+        successful_providers = []
         
         async with AsyncSessionLocal() as session:
             for provider in self.providers:
                 try:
                     lists = await provider.get_lists()
+                    successful_providers.append(provider)
                     for l_name in lists:
                         display_name = self._get_display_name(provider.account_label, l_name)
                         all_remote_display_names.add(display_name)
@@ -62,18 +64,36 @@ class SyncEngine:
                 except Exception as e:
                     logger.error(f"Error syncing {provider.name}: {e}")
 
-            # Cleanup orphaned lists/tasks
+            # Cleanup orphaned lists/tasks ONLY for providers that were successfully contacted
             local_lists_res = await session.execute(select(TaskList.name))
             current_local_lists = set(local_lists_res.scalars().all())
             
-            deleted_everywhere = current_local_lists - all_remote_display_names
+            # Identify lists that should be checked for deletion
+            # (only those belonging to successful providers)
+            check_prefixes = [f"[{p.account_label}]" for p in successful_providers]
+            
+            deleted_everywhere = []
+            for local_name in current_local_lists:
+                # If this list belongs to a provider we successfully synced...
+                if any(local_name.startswith(pre) for pre in check_prefixes):
+                    # ...but it's not in the remote list anymore, mark for deletion
+                    if local_name not in all_remote_display_names:
+                        deleted_everywhere.append(local_name)
+
             for d_name in deleted_everywhere:
                 await session.execute(delete(Task).where(Task.list_name == d_name))
                 await session.execute(delete(TaskList).where(TaskList.name == d_name))
 
             # Rebuild TaskList cache
             await session.execute(delete(TaskList))
-            for name in sorted(all_remote_display_names):
+            # Note: This is still slightly aggressive as it wipes the whole TaskList table.
+            # Let's keep existing lists for failed providers.
+            final_lists = all_remote_display_names.copy()
+            for local_name in current_local_lists:
+                if not any(local_name.startswith(pre) for pre in check_prefixes):
+                    final_lists.add(local_name)
+
+            for name in sorted(final_lists):
                 session.add(TaskList(name=name, provider_name="multi"))
             await session.commit()
 
