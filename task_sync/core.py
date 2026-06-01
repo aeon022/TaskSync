@@ -35,6 +35,24 @@ AsyncSessionLocal = sessionmaker(
 async def init_db():
     async with engine.begin() as conn:
         await conn.run_sync(SQLModel.metadata.create_all)
+    
+    # Basic migration check for missing columns
+    import sqlite3
+    db_raw_path = str(CONFIG_DIR / "state.db")
+    try:
+        with sqlite3.connect(db_raw_path) as conn:
+            cursor = conn.cursor()
+            # Check for columns in 'task' table
+            cursor.execute("PRAGMA table_info(task)")
+            columns = [info[1] for info in cursor.fetchall()]
+            
+            if "recurrence" not in columns:
+                cursor.execute("ALTER TABLE task ADD COLUMN recurrence TEXT")
+            if "sync_pending" not in columns:
+                cursor.execute("ALTER TABLE task ADD COLUMN sync_pending BOOLEAN DEFAULT 0")
+            conn.commit()
+    except Exception as e:
+        logger.error(f"Migration error: {e}")
 
 class SyncEngine:
     def __init__(self, providers: List[Any]):
