@@ -1,0 +1,20 @@
+<svg width="512" height="512" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="mauveGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#cba6f7;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#89b4fa;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  <!-- Background Shell -->
+  <rect width="512" height="512" rx="128" fill="#050505"/>
+  <rect x="2" y="2" width="508" height="508" rx="126" stroke="url(#mauveGradient)" stroke-width="4" stroke-opacity="0.2"/>
+  
+  <!-- Terminal "u" Monogram -->
+  <path d="M160 180V300C160 333.137 186.863 360 220 300H292C325.137 360 352 333.137 352 300V180" stroke="url(#mauveGradient)" stroke-width="48" stroke-linecap="round"/>
+  <path d="M352 240V360" stroke="url(#mauveGradient)" stroke-width="48" stroke-linecap="round"/>
+  
+  <!-- CLI Cursor / Underscore -->
+  <rect x="160" y="400" width="192" height="32" rx="16" fill="#cba6f7">
+    <animate attributeName="opacity" values="1;0;1" dur="1.5s" repeatCount="indefinite" />
+  </rect>
+</svg>
