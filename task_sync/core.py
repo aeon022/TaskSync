@@ -83,7 +83,11 @@ class SyncEngine:
     async def _update_local_db(self, provider_name: str, remote_tasks: List[Any], display_name: str):
         now_utc = datetime.now(timezone.utc)
         async with AsyncSessionLocal() as session:
-            mapping_stmt = select(SyncMapping).where(SyncMapping.provider_name == provider_name)
+            # We only want to look at mappings that belong to this list and provider
+            mapping_stmt = select(SyncMapping).join(Task).where(
+                SyncMapping.provider_name == provider_name,
+                Task.list_name == display_name
+            )
             mapping_res = await session.execute(mapping_stmt)
             existing_mappings = {m.remote_id: m for m in mapping_res.scalars().all()}
             
@@ -106,6 +110,8 @@ class SyncEngine:
                         mapping.last_sync = now_utc
                         session.add(mapping)
                 else:
+                    # Check if this task exists under a different list/provider (conflict/move)
+                    # For now, just create new
                     new_task = Task(
                         title=rt.title, 
                         status=rt.status, 
@@ -117,7 +123,7 @@ class SyncEngine:
                     await session.flush()
                     session.add(SyncMapping(task_id=new_task.id, provider_name=provider_name, remote_id=rt.remote_id, last_sync=now_utc))
             
-            # Local deletions if gone from remote
+            # Local deletions: only delete if task was in THIS list but is now gone from remote
             deleted_ids = set(existing_mappings.keys()) - seen_remote_ids
             for rid in deleted_ids:
                 mapping = existing_mappings[rid]
