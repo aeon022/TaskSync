@@ -132,6 +132,52 @@ import CookieBanner from '../components/CookieBanner.astro';
       </div>
     </section>
 
+    <!-- Visual Showcase: Command Palette -->
+    <section class="max-w-5xl mx-auto py-40 px-6 reveal">
+        <div class="text-center mb-20">
+            <h2 class="text-4xl font-bold text-white mb-4">Master the Command Palette.</h2>
+            <p class="text-zinc-500 max-w-lg mx-auto text-lg">One shortcut to rule them all. Search, switch themes, and manage recurrence without lifting your hands from the keys.</p>
+        </div>
+
+        <div class="relative group cursor-default">
+            <div class="absolute -inset-20 bg-mauve/5 blur-[120px] rounded-full -z-10 group-hover:bg-mauve/10 transition-all duration-1000"></div>
+            
+            <!-- Command Bar Preview -->
+            <div class="bg-zinc-950 border border-zinc-800 p-6 rounded-2xl border-glow shadow-2xl scale-100 group-hover:scale-[1.02] transition-transform duration-700">
+                <div class="flex items-center gap-4 mb-4 border-b border-zinc-900 pb-4">
+                    <span class="text-mauve font-bold">/</span>
+                    <span class="text-zinc-400 font-mono italic">pizza</span>
+                    <span class="ml-auto text-[10px] text-zinc-600 uppercase tracking-widest font-bold">Global Search</span>
+                </div>
+                <div class="space-y-2">
+                    <div class="bg-mauve/10 border border-mauve/20 p-3 rounded-lg flex justify-between items-center">
+                        <span class="text-zinc-100 font-mono text-sm">☐ Pizza essen heute 20:00</span>
+                        <span class="text-[10px] text-mauve/50 font-bold uppercase">[Apple] Erinnerungen</span>
+                    </div>
+                    <div class="p-3 opacity-40 flex justify-between items-center grayscale">
+                        <span class="text-zinc-400 font-mono text-sm">☐ Pizza Teig ansetzen</span>
+                        <span class="text-[10px] text-zinc-600 font-bold uppercase">[Google] Private</span>
+                    </div>
+                </div>
+                <div class="mt-8 pt-4 border-t border-zinc-900 flex gap-4">
+                    <div class="flex items-center gap-2 bg-zinc-900 px-3 py-1.5 rounded-full border border-zinc-800">
+                        <span class="text-mauve text-[10px] font-bold">ENTER</span>
+                        <span class="text-[9px] text-zinc-500 uppercase font-black">Jump to Task</span>
+                    </div>
+                    <div class="flex items-center gap-2 bg-zinc-900 px-3 py-1.5 rounded-full border border-zinc-800">
+                        <span class="text-mauve text-[10px] font-bold">ESC</span>
+                        <span class="text-[9px] text-zinc-500 uppercase font-black">Cancel</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Floating Theme Badge -->
+            <div class="absolute -top-10 -right-10 bg-mauve text-black text-[9px] font-black uppercase tracking-widest px-4 py-2 rounded-full rotate-12 shadow-2xl shadow-mauve/20 border-2 border-black/10">
+                v2.1 Elite
+            </div>
+        </div>
+    </section>
+
     <!-- Commands Section -->
     <section id="commands" class="max-w-6xl mx-auto py-40 px-6 scroll-mt-32 reveal">
       <div class="text-center mb-20">
