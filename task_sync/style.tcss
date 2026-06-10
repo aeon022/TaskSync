@@ -210,7 +210,7 @@ Tree .tree--guides {
     background: #24273a;
     color: #cad3f5;
 }
-.theme-macchiato #sidebar, .theme-macchiato #main-content, .theme-macchiato #details-panel { border-color: #494d64; }
+.theme-macchiato #sidebar, .theme-macchiato #main-content, .theme-macchiato #details-panel { border: solid #494d64; }
 .theme-macchiato .completed-task { color: #8087a2; }
 
 /* Theme Overrides - Frappe (Soft Dark) */
@@ -218,7 +218,7 @@ Tree .tree--guides {
     background: #303446;
     color: #c6d0f5;
 }
-.theme-frappe #sidebar, .theme-frappe #main-content, .theme-frappe #details-panel { border-color: #51576d; }
+.theme-frappe #sidebar, .theme-frappe #main-content, .theme-frappe #details-panel { border: solid #51576d; }
 .theme-frappe .completed-task { color: #838ba7; }
 
 /* Theme Overrides - Latte (Light Mode) */
