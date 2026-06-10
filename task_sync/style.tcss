@@ -56,7 +56,8 @@ Screen {
     border: solid $surface1;
     background: transparent;
     height: 100%;
-    margin: 0; /* Use grid gaps or padding instead of margin to prevent clipping */
+    margin: 0;
+    padding-top: 1; /* Increase distance between header title and content */
 }
 
 #sidebar {
