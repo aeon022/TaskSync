@@ -1,6 +1,8 @@
-# 🚀 UniversalTask (utask) v2.0 - Elite Edition
+# 🚀 UniversalTask (utask) v2.1 - Elite Edition
 
 `utask` ist eine hochperformante, asynchrone CLI & TUI App zur Synchronisation von Aufgaben zwischen **Apple Reminders**, **Google Tasks** und **Microsoft To Do**. Entwickelt für Power-User, die absolute Kontrolle über ihre Tasks benötigen, ohne den Terminal-Fokus zu verlieren.
+
+👉 **Offizielle Website:** [utask.sh](https://utask.sh)
 
 ---
 
@@ -14,6 +16,9 @@ Nach dem Klonen des Repos einfach das Setup-Skript ausführen. Es bereinigt alte
 
 ### 2. Globaler Befehl
 Das Setup erstellt einen Wrapper in `~/.local/bin/utask`. Stelle sicher, dass dieser Pfad in deinem `$PATH` ist (z.B. in deiner `.zshrc` oder `.bash_profile`).
+```bash
+export PATH="$HOME/.local/bin:$PATH"
+```
 
 ---
 
@@ -30,6 +35,7 @@ Das Setup erstellt einen Wrapper in `~/.local/bin/utask`. Stelle sicher, dass di
 ## 🔄 Cross-Device Sync (iCloud Integration)
 
 `utask` unterstützt die Synchronisation deiner Account-Konfiguration über mehrere Macs hinweg.
+
 ### 1. Shared Config aktivieren
 Verschiebe deine Provider-Liste in den iCloud Drive (oder einen anderen Cloud-Ordner), um auf allen Geräten dieselben Listen zu sehen:
 ```bash
@@ -45,21 +51,19 @@ Wenn du utask auf einem weiteren Mac (z.B. Mac Studio oder MacBook) einrichtest:
 
 *Hinweis: Deine Passwörter/Tokens werden sicher über den **iCloud Schlüsselbund** synchronisiert.*
 
----
-
-### 2. Funktionsweise
-*   **`providers.json`**: Wird im Shared Directory gespeichert und hält deine Accounts synchron.
-*   **Secrets**: Deine Tokens bleiben sicher im **iCloud Schlüsselbund** (via macOS Keychain).
-*   **Performance**: Die lokale SQLite-Datenbank bleibt auf jedem Gerät individuell für maximale Geschwindigkeit.
+### 3. Funktionsweise (Technical Architecture)
+*   **Single Source of Truth:** Eine lokale SQLite-Datenbank (`state.db`) sorgt für blitzschnelle Latenzzeiten beim Arbeiten.
+*   **Shared State:** Die `providers.json` im Shared Directory hält die Liste deiner aktiven Provider über alle Geräte synchron.
+*   **Keychain Security:** Sensitive Daten werden niemals im Klartext gespeichert, sondern direkt im nativen macOS Schlüsselbund abgelegt.
 
 ---
 
-## 🔑 Authentifizierung
+## 🔑 Authentifizierung & Troubleshooting
 
+### Initiales Setup
 Füge deine Accounts mit individuellen Labels hinzu:
-
 *   **Google Tasks**: `utask auth-google --label "Privat"` (Folge den Anweisungen im Terminal).
-*   **Microsoft To Do**: `utask auth-microsoft --client-id "DEINE_ID" --label "Arbeit"`.
+*   **Microsoft To Do**: `utask auth-microsoft --client-id "DEINE_ID" --label "FH"`.
 *   **Apple Reminders**: Wird auf macOS automatisch erkannt.
 
 ### Verbindung erneuern (Re-Authorization)
@@ -77,37 +81,37 @@ utask auth-google --label "Google"
 
 Starte das Interface mit: `utask ui`
 
-### Navigation & Listen
+### Navigation & Suche
 *   **Sidebar (Links)**: Listen sind nach Provider und Label gruppiert.
-*   **`j` / `k` oder Pfeiltasten**: Durch den Baum navigieren.
-*   **`ENTER`**: Liste auswählen und Aufgaben laden.
-*   **`TAB`**: Wechseln zwischen Sidebar, Aufgabenliste und Details.
+*   **`j` / `k` oder Pfeiltasten**: Durch die Listen oder Aufgaben navigieren.
+*   **`ENTER`**: Liste auswählen oder im Suchergebnis zum Task springen.
+*   **`/`**: **Globale Fuzzy-Search** – Suche über **alle** Listen und Provider hinweg.
+*   **`TAB`**: Fokus wechseln zwischen Sidebar, Aufgabenliste und Details.
 
-### Aufgaben-Aktionen
+### Aufgaben-Aktionen & Pro-Features
 *   **`SPACE`**: Aufgabe erledigen / wieder öffnen.
 *   **`a`**: Schnelles Hinzufügen einer neuen Aufgabe.
 *   **`d`**: Markierte Aufgabe löschen.
 *   **`u`**: Letzte Löschung rückgängig machen (Undo-Stack).
-*   **`/`**: **Globale Fuzzy-Search** – Suche über alle Listen und Provider hinweg.
-*   **`p`**: **Focus Mode (Pomodoro)** – 25min Zen-Timer für den aktuellen Task.
-*   **`i`**: **Insights** – Produktivitäts-Statistiken anzeigen.
-*   **`v`**: **Visual Mode** – Mehrere Tasks markieren für Bulk-Actions:
-    *   **`SPACE`**: Alle markierten erledigen.
-    *   **`d`**: Alle markierten löschen.
-    *   **`S`**: Alle markierten auf "Morgen" verschieben (Postpone).
+*   **`p`**: **Focus Mode (Pomodoro)** – Startet einen 25min Zen-Timer für volle Konzentration.
+*   **`i`**: **Insights** – Öffnet das Dashboard mit deinen Produktivitäts-Statistiken.
+*   **`v`**: **Visual Mode** – Mehrere Tasks markieren (Lila Highlight + `[V]` Marker):
+    *   **`SPACE`**: Alle markierten auf einmal erledigen.
+    *   **`d`**: Alle markierten gleichzeitig löschen.
+    *   **`S`**: Alle markierten auf "Morgen" verschieben.
 *   **`:`**: **Command Bar** – Profi-Befehle:
     *   `:theme <flavor>` (Mocha, Macchiato, Frappe, Latte)
     *   `:recur <freq>` (daily, weekly, monthly, none)
-    *   `:template add "Name" "Title" "Desc"` (Eigene Vorlagen erstellen)
-    *   `:use "Name"` (Aufgabe aus Vorlage in aktueller Liste erstellen)
+    *   `:template add "Alias" "Titel" "Beschreibung"`
+    *   `:use "Alias"` (Task aus Vorlage erstellen)
     *   `:create list "Name" [Provider]`
-    *   `:move <Label>` (Task zu anderem Provider schieben)
-    *   `:log` (Sync-Historie & Konflikte anzeigen)
+    *   `:move <Label>` (Markierte Tasks zu anderem Provider migrieren)
+    *   `:log` (Sync-Historie & technische Logs einsehen)
 
-### Arbeiten mit Templates (Pro-Workflow)
-Templates erlauben dir, komplexere Aufgabenstrukturen vorzubereiten und sie mit einem kurzen Befehl überall einzufügen:
-1. **Vorlage erstellen:** `:template add "dev" "Code Review" "Review PRs and merge to main"`
-2. **Vorlage nutzen:** In eine Liste navigieren (z.B. Google Tasks) und `:use "dev"` eingeben. utask erstellt sofort den Task inkl. Beschreibung in dieser Liste.
+### Arbeiten mit Templates (Automation)
+Templates sparen Zeit bei wiederkehrenden Projektstrukturen:
+1. **Vorlage speichern:** `:template add "deploy" "Release Deployment" "Run build, check logs, sync to origin"`
+2. **Vorlage nutzen:** In der Ziel-Liste einfach `:use "deploy"` eingeben.
 
 ---
 
@@ -131,7 +135,7 @@ utask add "Meeting mit Projektgruppe nächsten Dienstag 14:00"
 ```
 
 *   **Intelligenz**: Erkennt automatisch Daten wie "morgen", "nächsten Freitag", "in 2 weeks".
-* **Automatische Zuordnung**: Nutzt das Label im Listennamen (z.B. `[Apple] Reminders`).
+*   **Automatische Zuordnung**: Nutzt das Label im Listennamen (z.B. `[Apple] Reminders`).
 
 ---
 
@@ -149,18 +153,11 @@ utask bietet fertige Script-Commands für Raycast, um Aufgaben blitzschnell ohne
 
 ---
 
-## 🌐 Landing Page
-
-Besuche unsere offizielle Landing Page für einen visuellen Überblick der Features:
-👉 [utask.sh](https://utask.sh) (Source in `/website`)
-
----
-
-## 🔐 Security
-
+## 🔐 Security & Privacy
 
 *   **Keine Passwörter in Plaintext**: Alle Secrets werden sicher im **macOS Schlüsselbund (Keyring)** gespeichert.
 *   **Privacy First**: Deine Daten gehören dir. Es gibt keinen utask-Server; der Sync erfolgt direkt zwischen deinem Mac und den Provider-APIs.
+*   **Local-First**: utask funktioniert auch offline. Änderungen werden vorgemerkt und automatisch synchronisiert, sobald du wieder online bist.
 
 ---
 

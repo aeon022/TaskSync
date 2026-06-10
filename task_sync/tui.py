@@ -277,16 +277,16 @@ class UniversalTaskApp(App):
             yield Static("  •  [ 🟢 ONLINE ]", id="header-status")
         
         with Horizontal(id="app-grid"):
-            with Vertical(id="sidebar"):
-                yield Label(" 📂   LISTS ", classes="panel-header")
+            with Vertical(id="sidebar") as v:
+                v.border_title = "📂 LISTS"
                 yield Tree("📂 MY LISTS", id="list-tree")
-            with Vertical(id="main-content"):
-                yield Label(f" 📝   TASKS ", id="task-list-header", classes="panel-header")
+            with Vertical(id="main-content") as v:
+                v.border_title = "📝 TASKS"
                 yield Input(placeholder="Search... (ESC to clear)", id="search-input", classes="hidden")
                 yield Input(placeholder="Add Task... (Enter to save)", id="add-task-input", classes="hidden")
                 yield ListView(id="task-list")
-            with Vertical(id="details-panel"):
-                yield Label(" ℹ️   DETAILS ", classes="panel-header")
+            with Vertical(id="details-panel") as v:
+                v.border_title = "ℹ️ DETAILS"
                 yield Markdown("Select a task...", id="details-content")
         
         with Container(id="command-container"):
@@ -405,15 +405,15 @@ class UniversalTaskApp(App):
                 tasks.sort(key=lambda t: (t.status == "completed", t.title.lower()))
                 for t in tasks: view.append(TaskItem(t))
             
-            for header in self.query("#task-list-header"):
-                display_name = self.current_list
-                if display_name == "_smart_today": display_name = "Heute"
-                elif display_name == "_smart_important": display_name = "Wichtig"
-                
-                label = f" 📝   TASKS ({display_name})"
-                if self.search_filter: label += f" [🔍 {self.search_filter}]"
-                if not self.show_completed: label += " [HIDDEN DONE]"
-                header.update(label)
+            display_name = self.current_list
+            if display_name == "_smart_today": display_name = "Heute"
+            elif display_name == "_smart_important": display_name = "Wichtig"
+            
+            title = f"📝 TASKS ({display_name})"
+            if self.search_filter: title += f" [🔍 {self.search_filter}]"
+            if not self.show_completed: title += " [HIDDEN DONE]"
+            
+            self.query_one("#main-content", Vertical).border_title = title
 
     async def on_list_view_selected(self, event: ListView.Selected) -> None:
         if event.list_view.id == "task-list":
