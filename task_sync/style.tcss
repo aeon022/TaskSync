@@ -45,9 +45,9 @@ Screen {
 #app-grid {
     layout: grid;
     grid-size: 3;
-    grid-columns: 34 2fr 36;
+    grid-columns: 32 2fr 34; /* Slightly narrower columns to fit better */
     height: 1fr;
-    padding: 0 2; /* Give it space from the terminal window edges */
+    padding: 0 4; /* Increased horizontal padding */
 }
 
 /* Thin Border Panels with Fieldset Look */
@@ -69,6 +69,7 @@ Screen {
 
 #details-panel {
     margin-left: 1;
+    margin-right: 2; /* Explicitly shift the right border left */
 }
 
 #details-content {
