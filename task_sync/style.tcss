@@ -3,9 +3,14 @@ $base: #030303; /* Deeper black for higher contrast */
 $mantle: #0b0b0b;
 $crust: #000000;
 $text: #cdd6f4;
+$subtext1: #bac2de;
 $subtext0: #a6adc8;
-$surface0: #181825;
-$surface1: #313244;
+$overlay2: #9399b2;
+$overlay1: #7f849c;
+$overlay0: #6c7086;
+$surface2: #585b70;
+$surface1: #45475a;
+$surface0: #313244;
 $mauve: #cba6f7;
 $blue: #89b4fa;
 $green: #a6e3a1;
@@ -22,7 +27,7 @@ Screen {
 /* Minimalist Scrollbar - Cursor Block Style */
 * {
     scrollbar-size: 1 1;
-    scrollbar-color: $surface1;
+    scrollbar-color: $surface2;
     scrollbar-color-hover: $mauve;
     scrollbar-color-active: $mauve;
     scrollbar-background: transparent;
@@ -91,7 +96,7 @@ ListItem {
 }
 
 ListItem.visual-selected {
-    background: $mauve 20%;
+    background: $mauve 30%;
     color: white;
     text-style: bold italic;
 }
@@ -105,8 +110,9 @@ ListItem.selected {
 .prio-med { color: $peach; }
 .prio-low { color: $blue; }
 
+/* Fixed Contrast for Completed Tasks */
 .completed-task {
-    color: $surface1;
+    color: $overlay1; /* Mid-gray, readable but clearly "done" */
     text-style: strike;
 }
 
@@ -196,10 +202,26 @@ Tree .tree--guides {
 #focus-footer, #insights-footer, #fuzzy-footer {
     width: 100%;
     text-align: center;
-    color: $surface1;
+    color: $overlay0;
 }
 
-/* Theme Overrides - High Fidelity */
+/* Theme Overrides - Macchiato (Mid Dark) */
+.theme-macchiato {
+    background: #24273a;
+    color: #cad3f5;
+}
+.theme-macchiato #sidebar, .theme-macchiato #main-content, .theme-macchiato #details-panel { border-color: #494d64; }
+.theme-macchiato .completed-task { color: #8087a2; }
+
+/* Theme Overrides - Frappe (Soft Dark) */
+.theme-frappe {
+    background: #303446;
+    color: #c6d0f5;
+}
+.theme-frappe #sidebar, .theme-frappe #main-content, .theme-frappe #details-panel { border-color: #51576d; }
+.theme-frappe .completed-task { color: #838ba7; }
+
+/* Theme Overrides - Latte (Light Mode) */
 .theme-latte {
     background: #eff1f5;
     color: #4c4f69;
@@ -207,3 +229,5 @@ Tree .tree--guides {
 .theme-latte #header-stats { background: #dce0e8; border-bottom: solid #ccd0da; }
 .theme-latte #sidebar, .theme-latte #main-content, .theme-latte #details-panel { border: solid #ccd0da; }
 .theme-latte ListItem.selected { background: #8839ef 15%; }
+.theme-latte .completed-task { color: #8c8fa1; }
+.theme-latte #command-input { background: #e6e9ef; color: #4c4f69; }
