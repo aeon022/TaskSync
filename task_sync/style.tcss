@@ -47,23 +47,28 @@ Screen {
     grid-size: 3;
     grid-columns: 34 2fr 36;
     height: 1fr;
-    padding: 0 1;
+    padding: 0; /* Remove padding to ensure edges touch the screen boundaries if needed */
 }
 
 /* Thin Border Panels with Fieldset Look */
 #sidebar, #main-content, #details-panel {
     border: solid $surface1;
-    margin: 0 1;
     background: transparent;
+    width: 100%;
+    height: 100%;
 }
 
 #sidebar {
-    padding: 0;
+    margin: 0;
 }
 
 #main-content {
+    margin: 0;
     border-left: none;
     border-right: none;
+}
+
+#details-panel {
     margin: 0;
 }
 
