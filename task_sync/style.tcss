@@ -45,9 +45,10 @@ Screen {
 #app-grid {
     layout: grid;
     grid-size: 3;
-    grid-columns: 32 2fr 34; /* Slightly narrower columns to fit better */
+    grid-columns: 32 2fr 34;
     height: 1fr;
-    padding: 0 4; /* Increased horizontal padding */
+    padding: 0 2;
+    align: center top;
 }
 
 /* Thin Border Panels with Fieldset Look */
@@ -55,21 +56,15 @@ Screen {
     border: solid $surface1;
     background: transparent;
     height: 100%;
+    margin: 0; /* Use grid gaps or padding instead of margin to prevent clipping */
 }
 
 #sidebar {
-    margin-right: 1;
-}
-
-#main-content {
-    margin: 0;
-    border-left: none;
     border-right: none;
 }
 
 #details-panel {
-    margin-left: 1;
-    margin-right: 2; /* Explicitly shift the right border left */
+    border-left: none;
 }
 
 #details-content {

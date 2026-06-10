@@ -278,15 +278,15 @@ class UniversalTaskApp(App):
         
         with Horizontal(id="app-grid"):
             with Vertical(id="sidebar") as v:
-                v.border_title = "📂 LISTS"
+                v.border_title = "[ LISTS ]"
                 yield Tree("📂 MY LISTS", id="list-tree")
             with Vertical(id="main-content") as v:
-                v.border_title = "📝 TASKS"
+                v.border_title = "[ TASKS ]"
                 yield Input(placeholder="Search... (ESC to clear)", id="search-input", classes="hidden")
                 yield Input(placeholder="Add Task... (Enter to save)", id="add-task-input", classes="hidden")
                 yield ListView(id="task-list")
             with Vertical(id="details-panel") as v:
-                v.border_title = "ℹ️ DETAILS"
+                v.border_title = "[ DETAILS ]"
                 yield Markdown("Select a task...", id="details-content")
         
         with Container(id="command-container"):
@@ -409,9 +409,9 @@ class UniversalTaskApp(App):
             if display_name == "_smart_today": display_name = "Heute"
             elif display_name == "_smart_important": display_name = "Wichtig"
             
-            title = f"📝 TASKS ({display_name})"
-            if self.search_filter: title += f" [🔍 {self.search_filter}]"
-            if not self.show_completed: title += " [HIDDEN DONE]"
+            title = f"[ TASKS ({display_name}) ]"
+            if self.search_filter: title += f" [ 🔍 {self.search_filter} ]"
+            if not self.show_completed: title += " [ HIDDEN DONE ]"
             
             self.query_one("#main-content", Vertical).border_title = title
 
