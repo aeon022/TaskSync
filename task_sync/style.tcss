@@ -197,7 +197,6 @@ Tree .tree--guides {
     width: 100%;
     text-align: center;
     color: $surface1;
-    font-size: 8;
 }
 
 /* Theme Overrides - High Fidelity */
@@ -205,6 +204,6 @@ Tree .tree--guides {
     background: #eff1f5;
     color: #4c4f69;
 }
-.theme-latte #header-stats { background: #dce0e8; border-bottom-color: #ccd0da; }
-.theme-latte #sidebar, .theme-latte #main-content, .theme-latte #details-panel { border-color: #ccd0da; }
+.theme-latte #header-stats { background: #dce0e8; border-bottom: solid #ccd0da; }
+.theme-latte #sidebar, .theme-latte #main-content, .theme-latte #details-panel { border: solid #ccd0da; }
 .theme-latte ListItem.selected { background: #8839ef 15%; }
