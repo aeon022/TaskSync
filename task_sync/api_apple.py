@@ -13,7 +13,7 @@ def get_event_store():
     except ImportError:
         return None
 
-def update_task(remote_id: str, title: Optional[str] = None, completed: Optional[bool] = None) -> bool:
+def update_task(remote_id: str, title: Optional[str] = None, completed: Optional[bool] = None, due=None, set_due: bool = False) -> bool:
     store = get_event_store()
     if not store: return False
     
@@ -24,7 +24,9 @@ def update_task(remote_id: str, title: Optional[str] = None, completed: Optional
         reminder.setTitle_(title)
     if completed is not None:
         reminder.setCompleted_(completed)
-        
+    if set_due and _due(reminder.dueDateComponents()) != due:  # same day: keep the reminder's time of day
+        reminder.setDueDateComponents_(_components(due))
+
     success, error = store.saveReminder_commit_error_(reminder, True, None)
     return bool(success)
 
@@ -36,6 +38,14 @@ def get_lists() -> List[str]:
     if not store: return []
     calendars = store.calendarsForEntityType_(EKEntityTypeReminder)
     return [cal.title() for cal in calendars]
+
+def _components(due):
+    """(y, m, d) or None -> NSDateComponents (date only) or None to clear the due date."""
+    if not due: return None
+    from Foundation import NSDateComponents
+    c = NSDateComponents.alloc().init()
+    c.setYear_(due[0]); c.setMonth_(due[1]); c.setDay_(due[2])
+    return c
 
 def _due(comps):
     """EKReminder.dueDateComponents -> (y, m, d) or None. Missing parts come back as a huge sentinel."""

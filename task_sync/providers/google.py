@@ -105,7 +105,7 @@ class GoogleTasksProvider:
             logger.error(f"Google Tasks: Error creating task: {e}")
             return None
 
-    async def update_task(self, remote_id: str, title: Optional[str] = None, status: Optional[str] = None) -> bool:
+    async def update_task(self, remote_id: str, title: Optional[str] = None, status: Optional[str] = None, due: Optional[datetime] = None, set_due: bool = False) -> bool:
         if not self.service: return False
         await self._refresh_if_needed()
         
@@ -113,6 +113,8 @@ class GoogleTasksProvider:
         
         body = {'id': remote_id}
         if title: body['title'] = title
+        if set_due:  # Google keeps the date only, as midnight UTC
+            body['due'] = due.strftime('%Y-%m-%dT00:00:00.000Z') if due else None
         if status: 
             # Google Tasks: 'completed' or 'needsAction'
             body['status'] = status

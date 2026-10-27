@@ -245,9 +245,11 @@ class SyncEngine:
                                 session.add(SyncMapping(task_id=task.id, provider_name=provider.name, remote_id=remote_id, last_sync=now_utc))
                                 if task.status == "completed":
                                     await provider.update_task(remote_id, status="completed")
+                                if task.due_date:
+                                    await provider.update_task(remote_id, due=task.due_date, set_due=True)
                                 session.add(SyncLog(task_id=task.id, event="REMOTE_CREATED", details=f"Created on {provider.name}"))
                         else:
-                            if await provider.update_task(mapping.remote_id, title=task.title, status=task.status):
+                            if await provider.update_task(mapping.remote_id, title=task.title, status=task.status, due=task.due_date, set_due=True):
                                 mapping.last_sync = now_utc
                                 session.add(mapping)
                                 session.add(SyncLog(task_id=task.id, event="REMOTE_UPDATED", details=f"Updated on {provider.name}"))

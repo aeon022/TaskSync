@@ -92,13 +92,15 @@ class MicrosoftToDoProvider:
                     return data.get('id')
         return None
 
-    async def update_task(self, remote_id: str, title: Optional[str] = None, status: Optional[str] = None) -> bool:
+    async def update_task(self, remote_id: str, title: Optional[str] = None, status: Optional[str] = None, due: Optional[datetime] = None, set_due: bool = False) -> bool:
         headers = await self._headers()
         if not headers: return False
         
         body = {}
         if title: body['title'] = title
         if status: body['status'] = 'completed' if status == 'completed' else 'notStarted'
+        if set_due:
+            body['dueDateTime'] = {'dateTime': due.strftime('%Y-%m-%dT00:00:00.0000000'), 'timeZone': 'UTC'} if due else None
 
         async with aiohttp.ClientSession() as session:
             # Note: We need the list_id here too. For now assume 'tasks'

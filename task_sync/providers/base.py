@@ -24,7 +24,7 @@ class Provider(Protocol):
     async def create_task(self, title: str, list_name: str) -> Optional[str]:
         ...
         
-    async def update_task(self, remote_id: str, title: Optional[str] = None, status: Optional[str] = None) -> bool:
+    async def update_task(self, remote_id: str, title: Optional[str] = None, status: Optional[str] = None, due: Optional[datetime] = None, set_due: bool = False) -> bool:
         ...
         
     async def delete_task(self, remote_id: str) -> bool:

@@ -32,11 +32,12 @@ class AppleRemindersProvider(Provider):
     async def create_task(self, title: str, list_name: str) -> Optional[str]:
         return await asyncio.to_thread(api_apple.create_task, title, list_name)
 
-    async def update_task(self, remote_id: str, title: Optional[str] = None, status: Optional[str] = None) -> bool:
+    async def update_task(self, remote_id: str, title: Optional[str] = None, status: Optional[str] = None, due: Optional[datetime] = None, set_due: bool = False) -> bool:
         completed = None
         if status is not None:
             completed = (status == "completed")
-        return await asyncio.to_thread(api_apple.update_task, remote_id, title, completed)
+        due_ymd = (due.year, due.month, due.day) if due else None
+        return await asyncio.to_thread(api_apple.update_task, remote_id, title, completed, due_ymd, set_due)
 
     async def delete_task(self, remote_id: str) -> bool:
         return False

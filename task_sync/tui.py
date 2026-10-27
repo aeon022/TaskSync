@@ -178,6 +178,19 @@ class FuzzySearchScreen(ModalScreen):
         if event.key == "escape":
             self.dismiss(None)
 
+def parse_due(text: str) -> Optional[datetime]:
+    """'morgen', 'next friday', '24.12.' ... -> that day at midnight UTC, or None if it is not a date."""
+    import dateparser
+    text = re.sub(r"^(next|nächste[nr]?|kommende[nr]?)\s+", "", text.strip(), flags=re.I)  # dateparser knows "friday", not "next friday"
+    d = dateparser.parse(text, settings={"PREFER_DATES_FROM": "future"})
+    return datetime(d.year, d.month, d.day, tzinfo=timezone.utc) if d else None
+
+def split_due(text: str):
+    """'Call Anna @morgen' -> ('Call Anna', due). Without a readable '@date' the text stays as typed."""
+    title, sep, when = text.rpartition(" @")
+    due = parse_due(when) if sep else None
+    return (title.strip(), due) if due and title.strip() else (text, None)
+
 class TaskItem(ListItem):
     is_selected = reactive(False)
     show_due = False  # set per list: the date column only appears when some task has a date
@@ -300,7 +313,7 @@ class UniversalTaskApp(App):
             with Vertical(id="main-content") as v:
                 v.border_title = " TASKS "
                 yield Input(placeholder="Search... (ESC to clear)", id="search-input", classes="hidden")
-                yield Input(placeholder="New task in this list - enter saves, esc cancels", id="add-task-input", classes="hidden")
+                yield Input(placeholder="New task, optional '@morgen' / '@24.12.' for a due date - enter saves, esc cancels", id="add-task-input", classes="hidden")
                 yield ListView(id="task-list")
             with Vertical(id="details-panel") as v:
                 v.border_title = " DETAILS "
@@ -308,7 +321,7 @@ class UniversalTaskApp(App):
         
         with Container(id="command-container"):
             yield Label(":", id="command-prefix")
-            yield Input(placeholder="theme · move · create list · template · use · recur · sync · log - esc cancels", id="command-input")
+            yield Input(placeholder="due · theme · move · create list · template · use · recur · sync · log - esc cancels", id="command-input")
         
         yield Footer()
 
@@ -711,6 +724,8 @@ class UniversalTaskApp(App):
                 target_label = raw_cmd[5:].strip().strip('"').strip("'")
                 if target_label: await self.action_magic_move(target_label)
                 else: self.notify("Please specify a target provider label", severity="error")
+            elif cmd.startswith("due "):
+                await self.action_set_due(raw_cmd[4:].strip())
             elif cmd.startswith("theme "):
                 flavor = raw_cmd[6:].strip().lower()
                 if flavor in ("mocha", "macchiato", "frappe", "latte"):
@@ -774,10 +789,10 @@ class UniversalTaskApp(App):
                     for header in self.query("#help-header"):
                         header.update(" 📜   SYNC HISTORY (ESC/Q to exit) ")
         elif event.input.id == "add-task-input":
-            title = event.value.strip()
+            title, due = split_due(event.value.strip())
             if title:
                 async with AsyncSessionLocal() as session:
-                    session.add(Task(title=title, list_name=self.current_list, sync_pending=True))
+                    session.add(Task(title=title, list_name=self.current_list, due_date=due, sync_pending=True))
                     await session.commit()
                 event.input.value = ""; event.input.add_class("hidden")
                 await self.refresh_tasks()
@@ -789,6 +804,24 @@ class UniversalTaskApp(App):
             self.query_one("#task-list").focus()
         elif self.query("#list-tree"):
             self.query_one("#list-tree").focus()
+
+    async def action_set_due(self, text: str) -> None:
+        """:due <date|none> on the highlighted task (or all visual-selected ones)."""
+        view = self.query_one("#task-list", ListView)
+        ids = list(self.selected_ids) if self.visual_mode and self.selected_ids else (
+            [view.children[view.index].task_id] if view.index is not None and view.children and hasattr(view.children[view.index], "task_id") else [])
+        due = None if text.lower() in ("none", "-", "clear") else parse_due(text)
+        if not ids or (due is None and text.lower() not in ("none", "-", "clear")):
+            self.notify("Usage: :due <morgen | 24.12. | next friday | none> on a task", severity="error"); return
+        async with AsyncSessionLocal() as session:
+            for tid in ids:
+                task = await session.get(Task, tid)
+                if task:
+                    task.due_date = due; task.sync_pending = True; task.last_modified = datetime.now(timezone.utc)
+                    session.add(task)
+            await session.commit()
+        self.notify(f"Due {due.strftime('%d.%m.%Y') if due else 'cleared'} for {len(ids)} task(s)")
+        await self.refresh_tasks()
 
     async def action_delete_list(self, list_name: str) -> None:
         self.notify(f"Deleting list '{list_name}' everywhere...", severity="warning")

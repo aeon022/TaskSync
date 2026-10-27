@@ -90,7 +90,7 @@ Starte das Interface mit: `utask ui`
 
 ### Aufgaben-Aktionen & Pro-Features
 *   **`SPACE`**: Aufgabe erledigen / wieder öffnen.
-*   **`a`**: Schnelles Hinzufügen einer neuen Aufgabe.
+*   **`a`**: Schnelles Hinzufügen einer neuen Aufgabe. Mit `@Datum` am Ende bekommt sie eine Fälligkeit (`Steuer @24.12.`, `Anruf @morgen`).
 *   **`d`**: Markierte Aufgabe löschen.
 *   **`u`**: Letzte Löschung rückgängig machen (Undo-Stack).
 *   **`p`**: **Focus Mode (Pomodoro)** – Startet einen 25min Zen-Timer für volle Konzentration.
@@ -101,6 +101,7 @@ Starte das Interface mit: `utask ui`
     *   **`S`**: Alle markierten auf "Morgen" verschieben.
 *   **`:`**: **Command Bar** – Profi-Befehle:
     *   `:theme <flavor>` (Mocha, Macchiato, Frappe, Latte)
+    *   `:due <morgen | 24.12. | friday | none>` (Fälligkeit der markierten Task; wird mit synchronisiert)
     *   `:recur <freq>` (daily, weekly, monthly, none)
     *   `:template add "Alias" "Titel" "Beschreibung"`
     *   `:use "Alias"` (Task aus Vorlage erstellen)
