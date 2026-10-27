@@ -8,6 +8,9 @@
 
 ## 🛠️ Installation & Setup
 
+### 0. Ohne Python: fertiges Binary
+Für macOS (Apple Silicon) gibt es eine fertige Datei, kein Python und kein Setup-Skript nötig. Preis nach Wahl ab 5 €: [uTask Standalone](https://buy.polar.sh/polar_cl_VUqW9D6ArkhvbwrL3Pa6Oq3JQPZcMElRwnAYP4Ns3Qd). Der Quellcode bleibt offen (siehe unten).
+
 ### 1. Gnadenloses Setup
 Nach dem Klonen des Repos einfach das Setup-Skript ausführen. Es bereinigt alte Umgebungen und installiert alle Abhängigkeiten (Python 3.10+ erforderlich).
 ```bash
