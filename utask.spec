@@ -3,7 +3,7 @@
 block_cipher = None
 
 a = Analysis(
-    ['task_sync/main.py'],
+    ['utask_entry.py'],
     pathex=[],
     binaries=[],
     datas=[
@@ -13,6 +13,9 @@ a = Analysis(
         'sqlmodel.sql.expression',
         'aiosqlite',
         'dateparser',
+        'EventKit',
+        'Foundation',
+        'objc',
     ],
     hookspath=[],
     hooksconfig={},
