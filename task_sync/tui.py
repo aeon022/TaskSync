@@ -14,15 +14,12 @@ from textual.reactive import reactive
 from textual.screen import Screen, ModalScreen
 from textual.theme import Theme
 from .notify import notify
+from .tui_text import escape
+from .setup_screens import SetupScreen
 
 from sqlmodel import select, delete
 from .core import AsyncSessionLocal, init_db
 from .models import Task, TaskList
-
-def escape(text: str) -> str:
-    """Show remote text as typed. Titles come from other people's lists and from your own habits ("[WIP] fix", "Notes [2026]"):
-    Textual's markup would swallow or choke on every [..], so every [ is escaped."""
-    return (text or "").replace("\\", "\\\\").replace("[", "\\[")
 
 class HelpScreen(ModalScreen):
     """Displays the README.md content as a help manual."""
@@ -281,9 +278,12 @@ class UniversalTaskApp(App):
         Binding("s", "sync_now", "Sync"),
         Binding("p", "pomodoro_focus", "Focus", show=False),
         Binding("i", "show_insights", "Insights", show=False),
+        Binding("A", "show_accounts", "Accounts"),
         Binding("question_mark", "show_help", "Help"),
         Binding("escape", "cancel_input", "Cancel", show=False),
     ]
+
+    start_setup = False  # set by `utask setup`
 
     current_list = reactive("Reminders")
     show_completed = reactive(True)
@@ -327,12 +327,14 @@ class UniversalTaskApp(App):
         
         with Container(id="command-container"):
             yield Label(":", id="command-prefix")
-            yield Input(placeholder="due · theme · move · create list · template · use · recur · sync · log - esc cancels", id="command-input")
+            yield Input(placeholder="setup · due · theme · move · create list · template · use · recur · sync · log - esc cancels", id="command-input")
         
         yield Footer()
 
     async def on_mount(self) -> None:
         self.register_theme(self.UTASK_THEME)
+        from .accounts import migrate_legacy_secrets
+        migrate_legacy_secrets()  # old shared Keychain entries move to the first account of their provider
         await init_db()
         try:
             from .config import CONFIG_DIR
@@ -353,12 +355,49 @@ class UniversalTaskApp(App):
                 tree.select_node(first_list)
         await self.refresh_tasks()
         await self.update_sparkline()
+        self.first_run_check()
+        self.check_account_health()
         # Ensure the tree has focus so keyboard commands work immediately
         self.query_one("#list-tree").focus()
 
     def on_resize(self, event) -> None:
         self.set_class(event.size.width < 110, "narrow")
         self.set_class(event.size.width < 70, "tiny")
+
+    def action_show_accounts(self, welcome: bool = False) -> None:
+        """The setup assistant: accounts with their real state, add, sign in again, remove."""
+        async def after(changed) -> None:
+            if changed:
+                self.check_account_health()
+                await self.refresh_lists()
+                await self.refresh_tasks()
+                await self.action_sync_now()
+        self.push_screen(SetupScreen(welcome=welcome), after)
+
+    def check_account_health(self) -> None:
+        """Header status from the real state of every account (a worker thread: Google may need a network refresh)."""
+        import threading
+        def run():
+            from .accounts import check_account, list_accounts, BAD
+            bad = [f"{a['type']} {a['label']}" for a in list_accounts() if check_account(a["type"], a["label"])[0] == BAD]
+            text = "[$success]●[/] ONLINE" if not bad else f"[$error]✖[/] {len(bad)} account{'s need' if len(bad) > 1 else ' needs'} sign-in · press [b]A[/]"
+            self.call_from_thread(lambda: [h.update(text) for h in self.query("#header-status")])
+        threading.Thread(target=run, daemon=True).start()
+
+    def first_run_check(self) -> None:
+        """Open the assistant once on a fresh install: no account configured and never shown before."""
+        from .config import CONFIG_DIR, load_provider_config
+        if self.start_setup:  # `utask setup`
+            self.action_show_accounts()
+            return
+        marker = CONFIG_DIR / "setup_seen"
+        if load_provider_config() or marker.exists():
+            return
+        try:
+            marker.write_text("1")
+        except OSError:
+            pass
+        self.action_show_accounts(welcome=True)
 
     async def update_sparkline(self) -> None:
         from datetime import timedelta
@@ -378,6 +417,8 @@ class UniversalTaskApp(App):
     def watch_is_syncing(self, value: bool) -> None:
         for header in self.query("#header-status"):
             header.update("[$warning]●[/] SYNCING" if value else "[$success]●[/] ONLINE")
+        if not value and self.is_mounted:
+            self.check_account_health()  # a finished sync does not mean the logins work
 
     def watch_selected_ids(self, value: Set[int]) -> None:
         for item in self.query(TaskItem):
@@ -707,6 +748,7 @@ class UniversalTaskApp(App):
             elif cmd in ("help", "?"): self.push_screen(HelpScreen())
             elif cmd in ("h", "hide", "show"): await self.action_toggle_completed_visibility()
             elif cmd == "sync": await self.action_sync_now()
+            elif cmd in ("setup", "accounts", "account"): self.action_show_accounts()
             elif cmd.startswith("delete list"):
                 list_name = raw_cmd[11:].strip().strip('"').strip("'")
                 if list_name: await self.action_delete_list(list_name)

@@ -59,6 +59,12 @@ def add_provider_config(provider_type: str, label: str):
     with open(get_providers_file(), "w") as f:
         json.dump(providers, f, indent=4)
 
+def remove_provider_config(provider_type: str, label: str):
+    """Removes an account from the shared provider list."""
+    providers = [p for p in load_provider_config() if not (p["type"] == provider_type and p["label"] == label)]
+    with open(get_providers_file(), "w") as f:
+        json.dump(providers, f, indent=4)
+
 # Legacy Token Logic (kept for compatibility if needed, but security.py is preferred)
 TOKEN_FILE = CONFIG_DIR / "tokens.json"
 

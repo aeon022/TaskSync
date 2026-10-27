@@ -13,13 +13,18 @@ class MicrosoftToDoProvider:
 
     def __init__(self, account_label: str = "MS"):
         self.account_label = account_label
-        self.client_id = load_secret("microsoft", "client_id", is_json=False)
-        self.tenant_id = load_secret("microsoft", "tenant_id", is_json=False) or "common"
+        self.client_id = load_secret("microsoft", "client_id", is_json=False, label=account_label)
+        self.tenant_id = load_secret("microsoft", "tenant_id", is_json=False, label=account_label) or "common"
         self.app = None
+        self.cache = msal.SerializableTokenCache()  # persisted in the Keychain: without it every new process is signed out
+        cached = load_secret("microsoft", "cache", is_json=False, label=account_label)
+        if cached:
+            self.cache.deserialize(cached)
         if self.client_id:
             self.app = msal.PublicClientApplication(
-                self.client_id, 
-                authority=f"https://login.microsoftonline.com/{self.tenant_id}"
+                self.client_id,
+                authority=f"https://login.microsoftonline.com/{self.tenant_id}",
+                token_cache=self.cache,
             )
 
     async def _get_access_token(self) -> Optional[str]:
@@ -29,6 +34,8 @@ class MicrosoftToDoProvider:
         if accounts:
             # Note: MSAL's acquire_token_silent is sync
             result = await asyncio.to_thread(self.app.acquire_token_silent, SCOPES, account=accounts[0])
+            if self.cache.has_state_changed:  # a refreshed token must survive the process
+                save_secret("microsoft", "cache", self.cache.serialize(), label=self.account_label)
             if result and 'access_token' in result:
                 return result['access_token']
         return None

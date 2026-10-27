@@ -13,6 +13,8 @@ def get_engine():
     from .config import load_provider_config
     from .providers import get_provider
     
+    from .accounts import migrate_legacy_secrets
+    migrate_legacy_secrets()
     config_providers = load_provider_config()
     providers = []
     
@@ -130,6 +132,14 @@ def daemon_stop():
         typer.echo("⚠️ No daemon service found.")
 
 @app.command()
+def setup():
+    """Open the setup assistant: add accounts, sign in again, see every account's state."""
+    from .tui import UniversalTaskApp
+    a = UniversalTaskApp()
+    a.start_setup = True
+    a.run()
+
+@app.command()
 def ui():
     """Launch the TUI."""
     from .tui import UniversalTaskApp
@@ -208,7 +218,7 @@ def auth_google(
     
     try:
         if client_id and client_secret:
-            msg = auth_google_manual(client_id, client_secret)
+            msg = auth_google_manual(client_id, client_secret, label)
         else:
             typer.echo("Bitte kopiere den INHALT der Google JSON-Datei hier hinein.")
             typer.echo("Drücke danach STRG+D zum Speichern.")
@@ -216,7 +226,7 @@ def auth_google(
             if not json_data:
                 typer.echo("Abbruch: Keine Daten empfangen.")
                 return
-            msg = perform_auth(json_data)
+            msg = perform_auth(json_data, label)
         
         add_provider_config("google", label)
         typer.echo(f"✅ {msg}")
@@ -233,7 +243,7 @@ def auth_microsoft(
     """Save Microsoft App Registration ID."""
     from .auth import auth_microsoft as perform_auth
     from .config import add_provider_config
-    msg = perform_auth(client_id, tenant_id)
+    msg = perform_auth(client_id, tenant_id, label)
     add_provider_config("microsoft", label)
     typer.echo(f"✅ {msg}")
     typer.echo(f"✅ Provider registriert unter Label: {label}")
@@ -250,31 +260,6 @@ def logs(lines: int = 20):
         content = f.readlines()
         for line in content[-lines:]:
             typer.echo(line.strip())
-
-def _check_provider(kind: str, instance, label: str):
-    """(mark, note) for `doctor`. Credentials that exist are not credentials that work: a Google refresh token that was
-    revoked looks fine until you try it, so we try it."""
-    try:
-        if kind == "google":
-            if not instance.creds:
-                return "❌", f": not authorized, run: utask auth-google --label \"{label}\""
-            if instance.creds.expired and instance.creds.refresh_token:
-                from google.auth.transport.requests import Request
-                instance.creds.refresh(Request())
-                instance._save_creds(instance.creds)
-            return "✅", ": token works"
-        if kind == "microsoft":
-            if not instance.client_id:
-                return "❌", ": no client ID, run: utask auth-microsoft --client-id ... --label ..."
-            if not instance.app.get_accounts():
-                return "⚠️", ": client ID saved, but no signed-in account in this session (sign in with: utask sync)"
-            return "✅", ": signed in"
-    except Exception as e:  # a failed refresh (invalid_grant) lands here
-        text = str(e)
-        hint = f", re-authorize: utask auth-{kind} --label \"{label}\"" if "invalid_grant" in text or kind == "google" else ""
-        return "❌", f": {text[:90]}{hint}"
-    return "✅", ""
-
 
 @app.command()
 def doctor():
@@ -317,16 +302,17 @@ def doctor():
         typer.echo(f"  {apple_ok} Apple Reminders: Permissions OK")
     
     from .config import load_provider_config
-    from .providers import get_provider
+    from .accounts import check_account, migrate_legacy_secrets
+    migrate_legacy_secrets()
     problems = 0
     providers = load_provider_config()
     for p in providers:
-        instance = get_provider(p["type"], p["label"])
-        if not instance:
-            continue
-        mark, note = _check_provider(p["type"], instance, p["label"])
-        problems += mark == "❌"
-        typer.echo(f"  {mark} {p['type'].capitalize()} ({p['label']}){note}")
+        state, text = check_account(p["type"], p["label"])
+        mark = {"ok": "✅", "warn": "⚠️", "bad": "❌"}[state]
+        problems += state == "bad"
+        typer.echo(f"  {mark} {p['type'].capitalize()} ({p['label']}): {text}")
+        if state == "bad":
+            typer.echo("     fix it in the interface: utask setup  (or press A inside utask ui)")
 
     typer.echo("-" * 30)
     if problems:

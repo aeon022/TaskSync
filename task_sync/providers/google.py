@@ -26,13 +26,13 @@ class GoogleTasksProvider:
             self.service = build('tasks', 'v1', credentials=self.creds, static_discovery=False)
 
     def _load_creds(self) -> Optional[Credentials]:
-        token_data = load_secret("google", "token")
+        token_data = load_secret("google", "token", label=self.account_label)
         if token_data:
             return Credentials.from_authorized_user_info(token_data, SCOPES)
         return None
 
     def _save_creds(self, creds: Credentials):
-        save_secret("google", "token", json.loads(creds.to_json()))
+        save_secret("google", "token", json.loads(creds.to_json()), label=self.account_label)
 
     async def _refresh_if_needed(self):
         if self.creds and self.creds.expired and self.creds.refresh_token:

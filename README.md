@@ -65,14 +65,16 @@ Wenn du utask auf einem weiteren Mac (z.B. Mac Studio oder MacBook) einrichtest:
 
 ## 🔑 Authentifizierung & Troubleshooting
 
-### Initiales Setup
-Füge deine Accounts mit individuellen Labels hinzu:
+### Initiales Setup: der Einrichtungs-Assistent
+`utask setup` (oder in `utask ui` die Taste **`A`**) zeigt alle Accounts mit ihrem **echten** Zustand (der Login wird ausprobiert), erlaubt Hinzufügen, erneut Anmelden (`r`) und Entfernen (`d`). Auf einer frischen Installation öffnet er sich von selbst. Die Kopfzeile meldet `✖ n Accounts brauchen Anmeldung`, wenn ein Login abgelaufen ist. Jeder Account hat seinen **eigenen** Login (zwei Google-Konten nebeneinander sind möglich), Tokens liegen im macOS-Schlüsselbund.
+
+Alternativ per Kommandozeile, Accounts mit individuellen Labels:
 *   **Google Tasks**: `utask auth-google --label "Privat"` (Folge den Anweisungen im Terminal).
 *   **Microsoft To Do**: `utask auth-microsoft --client-id "DEINE_ID" --label "FH"`.
 *   **Apple Reminders**: Wird auf macOS automatisch erkannt.
 
 ### Verbindung erneuern (Re-Authorization)
-Sollte ein Provider nicht mehr synchronisieren (z.B. Fehler `invalid_grant` im Log), muss die Verbindung neu autorisiert werden. Führe dazu einfach den ursprünglichen Auth-Befehl mit demselben Label erneut aus:
+Sollte ein Provider nicht mehr synchronisieren (z.B. Fehler `invalid_grant` im Log), zeigt `utask doctor` und die Kopfzeile des Interfaces das an. Im Assistenten (`A`, dann `r`) meldest du dich erneut an. Per Kommandozeile geht es mit dem ursprünglichen Auth-Befehl und demselben Label:
 
 ```bash
 # Beispiel für Google Re-Auth

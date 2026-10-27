@@ -167,7 +167,7 @@ Tree .tree--guides {
 
 /* Modals with Thin Borders */
 ModalScreen { align: center middle; background: $background 70%; }
-#focus-dialog, #insights-dialog, #fuzzy-dialog, #help-dialog {
+#focus-dialog, #insights-dialog, #fuzzy-dialog, #help-dialog, #setup-dialog, #add-dialog {
     background: $background;
     border: round $primary;
     width: 90%;
@@ -176,7 +176,7 @@ ModalScreen { align: center middle; background: $background 70%; }
     max-height: 30;
     padding: 1 2;
 }
-#focus-header, #insights-header, #fuzzy-header, #help-header {
+#focus-header, #insights-header, #fuzzy-header, #help-header, #setup-header, #add-header {
     width: 100%;
     color: $primary;
     text-style: bold;
@@ -229,3 +229,13 @@ ModalScreen { align: center middle; background: $background 70%; }
 #details-content MarkdownHorizontalRule { color: $border-blurred; }
 #list-tree { scrollbar-size-horizontal: 0; overflow-x: hidden; }
 TaskItem Label { background: transparent; width: 1fr; padding: 0 2; text-wrap: nowrap; text-overflow: ellipsis; }
+
+/* Setup assistant */
+#setup-dialog, #add-dialog { height: auto; max-height: 90%; }
+#setup-intro { color: $text-muted; margin-bottom: 1; }
+#setup-list { height: auto; max-height: 12; background: transparent; border: none; margin-bottom: 1; }
+#setup-footer { width: 100%; text-align: center; color: $text-muted; margin-top: 1; }
+#add-dialog Select, #add-dialog Input { margin-bottom: 1; }
+#add-status { min-height: 3; margin-bottom: 1; }
+#add-buttons { height: auto; align-horizontal: right; }
+#add-buttons Button { margin-left: 2; }
