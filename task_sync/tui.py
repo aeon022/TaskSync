@@ -300,7 +300,7 @@ class UniversalTaskApp(App):
             with Vertical(id="main-content") as v:
                 v.border_title = " TASKS "
                 yield Input(placeholder="Search... (ESC to clear)", id="search-input", classes="hidden")
-                yield Input(placeholder="Add Task... (Enter to save)", id="add-task-input", classes="hidden")
+                yield Input(placeholder="New task in this list - enter saves, esc cancels", id="add-task-input", classes="hidden")
                 yield ListView(id="task-list")
             with Vertical(id="details-panel") as v:
                 v.border_title = " DETAILS "
@@ -308,7 +308,7 @@ class UniversalTaskApp(App):
         
         with Container(id="command-container"):
             yield Label(":", id="command-prefix")
-            yield Input(placeholder="Enter command...", id="command-input")
+            yield Input(placeholder="theme · move · create list · template · use · recur · sync · log - esc cancels", id="command-input")
         
         yield Footer()
 
