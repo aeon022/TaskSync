@@ -232,18 +232,18 @@ class UniversalTaskApp(App):
         Binding("space", "toggle_complete", "Check"),
         Binding("x", "toggle_complete", "Check", show=False),
         Binding("v", "toggle_visual", "Visual"),
-        Binding("S", "postpone_tasks", "Postpone"),
+        Binding("S", "postpone_tasks", "Postpone", show=False),
         Binding("d,d", "delete_task", "Delete", show=False),
         Binding("d", "delete_task", "Delete"),
-        Binding("u", "undo", "Undo"),
+        Binding("u", "undo", "Undo", show=False),
         Binding("a", "focus_add", "Add"),
         Binding("slash", "global_search", "Search"),
-        Binding("h", "toggle_completed_visibility", "Hide Done"),
+        Binding("h", "toggle_completed_visibility", "Hide Done", show=False),
         Binding("colon", "focus_command", "Command"),
         Binding(":", "focus_command", "Command", show=False),
         Binding("s", "sync_now", "Sync"),
-        Binding("p", "pomodoro_focus", "Focus"),
-        Binding("i", "show_insights", "Insights"),
+        Binding("p", "pomodoro_focus", "Focus", show=False),
+        Binding("i", "show_insights", "Insights", show=False),
         Binding("question_mark", "show_help", "Help"),
         Binding("escape", "cancel_input", "Cancel", show=False),
     ]
@@ -272,21 +272,21 @@ class UniversalTaskApp(App):
 
     def compose(self) -> ComposeResult:
         with Horizontal(id="header-stats"):
-            yield Static("🚀 utask v2.1  •  ", id="header-title")
+            yield Static("[b]◆ utask[/] [dim]v2.1[/]", id="header-title")
             yield Sparkline([0]*20, summary_function=max)
-            yield Static("  •  [ 🟢 ONLINE ]", id="header-status")
+            yield Static("[green]●[/] ONLINE", id="header-status")
         
         with Horizontal(id="app-grid"):
             with Vertical(id="sidebar") as v:
-                v.border_title = "[ LISTS ]"
-                yield Tree("📂 MY LISTS", id="list-tree")
+                v.border_title = " LISTS "
+                yield Tree("LISTS", id="list-tree")
             with Vertical(id="main-content") as v:
-                v.border_title = "[ TASKS ]"
+                v.border_title = " TASKS "
                 yield Input(placeholder="Search... (ESC to clear)", id="search-input", classes="hidden")
                 yield Input(placeholder="Add Task... (Enter to save)", id="add-task-input", classes="hidden")
                 yield ListView(id="task-list")
             with Vertical(id="details-panel") as v:
-                v.border_title = "[ DETAILS ]"
+                v.border_title = " DETAILS "
                 yield Markdown("Select a task...", id="details-content")
         
         with Container(id="command-container"):
@@ -310,6 +310,7 @@ class UniversalTaskApp(App):
 
         await self.refresh_lists()
         tree = self.query_one("#list-tree", Tree)
+        tree.show_root = False
         if tree.root.children:
             first_account = tree.root.children[0]
             if first_account.children:
@@ -320,6 +321,10 @@ class UniversalTaskApp(App):
         await self.update_sparkline()
         # Ensure the tree has focus so keyboard commands work immediately
         self.query_one("#list-tree").focus()
+
+    def on_resize(self, event) -> None:
+        self.set_class(event.size.width < 110, "narrow")
+        self.set_class(event.size.width < 70, "tiny")
 
     async def update_sparkline(self) -> None:
         from datetime import timedelta
@@ -338,7 +343,7 @@ class UniversalTaskApp(App):
 
     def watch_is_syncing(self, value: bool) -> None:
         for header in self.query("#header-status"):
-            header.update("  •  [ 🟡 BUSY ]" if value else "  •  [ 🟢 ONLINE ]")
+            header.update("[yellow]●[/] SYNCING" if value else "[green]●[/] ONLINE")
 
     def watch_selected_ids(self, value: Set[int]) -> None:
         for item in self.query(TaskItem):
@@ -354,7 +359,7 @@ class UniversalTaskApp(App):
             tree.root.expand()
 
             # Inject Smart Views
-            smart = tree.root.add("[bold mauve]💡 SMART VIEWS[/]", expand=True)
+            smart = tree.root.add("[bold mauve]◈ SMART VIEWS[/]", expand=True)
             smart.add_leaf("Heute", data="_smart_today")
             smart.add_leaf("Wichtig", data="_smart_important")
 
@@ -404,14 +409,16 @@ class UniversalTaskApp(App):
                     tasks = [t for t in tasks if self.search_filter.lower() in t.title.lower()]
                 tasks.sort(key=lambda t: (t.status == "completed", t.title.lower()))
                 for t in tasks: view.append(TaskItem(t))
+                if not tasks:
+                    view.append(ListItem(Label("[dim]Nothing here. [b]a[/b] adds a task, [b]s[/b] syncs.[/]"), disabled=True))
             
             display_name = self.current_list
             if display_name == "_smart_today": display_name = "Heute"
             elif display_name == "_smart_important": display_name = "Wichtig"
             
-            title = f"[ TASKS ({display_name}) ]"
-            if self.search_filter: title += f" [ 🔍 {self.search_filter} ]"
-            if not self.show_completed: title += " [ HIDDEN DONE ]"
+            title = f" {display_name.upper()} "
+            if self.search_filter: title += f"· search: {self.search_filter} "
+            if not self.show_completed: title += "· done hidden "
             
             self.query_one("#main-content", Vertical).border_title = title
 

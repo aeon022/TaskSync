@@ -34,20 +34,25 @@ Screen {
 }
 
 #header-stats {
-    height: 3;
+    height: 4;
     background: $crust;
     color: $mauve;
-    content-align: center middle;
+    align: center middle;
+    padding: 0 2;
+    overflow: hidden;
     border-bottom: solid $surface1;
-    text-style: bold;
 }
+#header-title { width: auto; color: $mauve; }
+#header-stats Sparkline { width: 24; height: 1; margin: 0 3; }
+#header-status { width: auto; color: $subtext0; }
 
 #app-grid {
     layout: grid;
     grid-size: 3;
-    grid-columns: 32 2fr 34;
+    grid-columns: 30 1fr 34;
     height: 1fr;
-    padding: 0 2;
+    padding: 0 1;
+    overflow: hidden;
     align: center top;
 }
 
@@ -59,6 +64,19 @@ Screen {
     margin: 0;
     padding-top: 1; /* Increase distance between header title and content */
 }
+
+#sidebar, #main-content, #details-panel {
+    border-title-color: $mauve;
+    border-title-style: bold;
+}
+#task-list { background: transparent; }
+#task-list > ListItem.-highlight { background: $mauve 25%; }
+#task-list:focus > ListItem.-highlight { background: $mauve 40%; }
+#list-tree > .tree--cursor { background: $mauve 30%; color: $text; text-style: bold; }
+#list-tree:focus > .tree--cursor { background: $mauve 45%; }
+Footer { background: $crust; color: $overlay1; scrollbar-size-horizontal: 0; }
+Footer .footer-key--key { color: $mauve; background: $crust; text-style: bold; }
+Footer .footer-key--description { color: $subtext0; background: $crust; }
 
 #sidebar {
     border-right: none;
@@ -232,3 +250,16 @@ Tree .tree--guides {
 .theme-latte ListItem.selected { background: #8839ef 15%; }
 .theme-latte .completed-task { color: #8c8fa1; }
 .theme-latte #command-input { background: #e6e9ef; color: #4c4f69; }
+
+/* Narrow terminals: drop the details panel, then shrink the sidebar */
+.narrow #app-grid { grid-size: 2; grid-columns: 28 1fr; }
+.narrow #details-panel { display: none; }
+.tiny #app-grid { grid-size: 2; grid-columns: 20 1fr; }
+.tiny #details-panel { display: none; }
+
+#header-stats Sparkline > .sparkline--max-color { color: $mauve; }
+#header-stats Sparkline > .sparkline--min-color { color: $surface2; }
+
+#details-content MarkdownH1 { color: $mauve; text-align: left; content-align: left middle; text-style: bold; margin: 0 0 1 0; }
+#details-content MarkdownHorizontalRule { color: $surface1; }
+#list-tree { scrollbar-size-horizontal: 0; overflow-x: hidden; }
