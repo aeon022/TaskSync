@@ -1,50 +1,32 @@
-/* Catppuccin Mocha Palette - Elite Edition */
-$base: #030303; /* Deeper black for higher contrast */
-$mantle: #0b0b0b;
-$crust: #000000;
-$text: #cdd6f4;
-$subtext1: #bac2de;
-$subtext0: #a6adc8;
-$overlay2: #9399b2;
-$overlay1: #7f849c;
-$overlay0: #6c7086;
-$surface2: #585b70;
-$surface1: #45475a;
-$surface0: #313244;
-$mauve: #cba6f7;
-$blue: #89b4fa;
-$green: #a6e3a1;
-$red: #f38ba8;
-$peach: #fab387;
-$yellow: #f9e2af;
+/* Colors come from the active Textual theme ($primary, $background, ...), switch with :theme */
 
 Screen {
-    background: $base;
-    color: $text;
+    background: $background;
+    color: $foreground;
     layers: default overlay;
 }
 
 /* Minimalist Scrollbar - Cursor Block Style */
 * {
     scrollbar-size: 1 1;
-    scrollbar-color: $surface2;
-    scrollbar-color-hover: $mauve;
-    scrollbar-color-active: $mauve;
+    scrollbar-color: $border-blurred;
+    scrollbar-color-hover: $primary;
+    scrollbar-color-active: $primary;
     scrollbar-background: transparent;
 }
 
 #header-stats {
     height: 4;
-    background: $crust;
-    color: $mauve;
+    background: $background;
+    color: $primary;
     align: center middle;
     padding: 0 2;
     overflow: hidden;
-    border-bottom: solid $surface1;
+    border-bottom: solid $border-blurred;
 }
-#header-title { width: auto; color: $mauve; }
+#header-title { width: auto; color: $primary; }
 #header-stats Sparkline { width: 24; height: 1; margin: 0 3; }
-#header-status { width: auto; color: $subtext0; }
+#header-status { width: auto; color: $text-muted; }
 
 #app-grid {
     layout: grid;
@@ -58,7 +40,7 @@ Screen {
 
 /* Thin Border Panels with Fieldset Look */
 #sidebar, #main-content, #details-panel {
-    border: solid $surface1;
+    border: solid $border-blurred;
     background: transparent;
     height: 100%;
     margin: 0;
@@ -66,17 +48,17 @@ Screen {
 }
 
 #sidebar, #main-content, #details-panel {
-    border-title-color: $mauve;
+    border-title-color: $primary;
     border-title-style: bold;
 }
 #task-list { background: transparent; }
-#task-list > ListItem.-highlight { background: $mauve 25%; }
-#task-list:focus > ListItem.-highlight { background: $mauve 40%; }
-#list-tree > .tree--cursor { background: $mauve 30%; color: $text; text-style: bold; }
-#list-tree:focus > .tree--cursor { background: $mauve 45%; }
-Footer { background: $crust; color: $overlay1; scrollbar-size-horizontal: 0; }
-Footer .footer-key--key { color: $mauve; background: $crust; text-style: bold; }
-Footer .footer-key--description { color: $subtext0; background: $crust; }
+#task-list > ListItem.-highlight { background: $primary 25%; }
+#task-list:focus > ListItem.-highlight { background: $primary 40%; }
+#list-tree > .tree--cursor { background: $primary 30%; color: $foreground; text-style: bold; }
+#list-tree:focus > .tree--cursor { background: $primary 45%; }
+Footer { background: $background; color: $text-muted; scrollbar-size-horizontal: 0; }
+Footer .footer-key--key { color: $primary; background: $background; text-style: bold; }
+Footer .footer-key--description { color: $text-muted; background: $background; }
 
 #sidebar {
     border-right: none;
@@ -102,8 +84,8 @@ Footer .footer-key--description { color: $subtext0; background: $crust; }
 
 #add-task-input {
     margin: 1 1;
-    border: solid $mauve;
-    background: $crust;
+    border: solid $primary;
+    background: $background;
 }
 
 /* List Item - Clean & High Contrast */
@@ -115,29 +97,29 @@ ListItem {
 }
 
 ListItem.visual-selected {
-    background: $mauve 30%;
+    background: $primary 30%;
     color: white;
     text-style: bold italic;
 }
 
 ListItem.selected {
-    background: $mauve 10%;
+    background: $primary 10%;
 }
 
 /* Task Priority Indicators */
-.prio-high { color: $red; text-style: bold; }
-.prio-med { color: $peach; }
-.prio-low { color: $blue; }
+.prio-high { color: $error; text-style: bold; }
+.prio-med { color: $warning; }
+.prio-low { color: $secondary; }
 
 /* Fixed Contrast for Completed Tasks */
 .completed-task {
-    color: $overlay1; /* Mid-gray, readable but clearly "done" */
+    color: $text-muted; /* Mid-gray, readable but clearly "done" */
     text-style: strike;
 }
 
 #list-tree {
     background: transparent;
-    color: $text;
+    color: $foreground;
     padding: 0;
 }
 
@@ -150,7 +132,7 @@ Tree:focus {
 }
 
 Tree .tree--guides {
-    color: $surface1;
+    color: $border-blurred;
 }
 
 /* Animated Command Bar */
@@ -158,8 +140,8 @@ Tree .tree--guides {
     dock: bottom;
     layout: horizontal;
     height: 1;
-    background: $mauve;
-    color: $crust;
+    background: $primary;
+    color: $background;
     offset-y: 100%;
     layer: overlay;
     transition: offset 150ms in_out_cubic;
@@ -177,17 +159,17 @@ Tree .tree--guides {
 
 #command-input {
     width: 1fr;
-    background: $crust;
-    color: $text;
+    background: $background;
+    color: $foreground;
     border: none;
     padding: 0 1;
 }
 
 /* Modals with Thin Borders */
-ModalScreen { align: center middle; background: $crust 70%; }
+ModalScreen { align: center middle; background: $background 70%; }
 #focus-dialog, #insights-dialog, #fuzzy-dialog, #help-dialog {
-    background: $base;
-    border: round $mauve;
+    background: $background;
+    border: round $primary;
     width: 90%;
     max-width: 84;
     height: 85%;
@@ -196,18 +178,18 @@ ModalScreen { align: center middle; background: $crust 70%; }
 }
 #focus-header, #insights-header, #fuzzy-header, #help-header {
     width: 100%;
-    color: $mauve;
+    color: $primary;
     text-style: bold;
     margin-bottom: 1;
 }
 #help-scroll, #insights-scroll { height: 1fr; }
 #help-dialog MarkdownH1, #help-dialog MarkdownH2, #help-dialog MarkdownH3,
-#insights-dialog MarkdownH1, #insights-dialog MarkdownH2 { color: $mauve; text-style: bold; text-align: left; content-align: left middle; }
-#help-dialog MarkdownBlock Link, #insights-dialog Link { color: $blue; }
+#insights-dialog MarkdownH1, #insights-dialog MarkdownH2 { color: $primary; text-style: bold; text-align: left; content-align: left middle; }
+#help-dialog MarkdownBlock Link, #insights-dialog Link { color: $secondary; }
 
 #fuzzy-input {
-    background: $crust;
-    border: solid $surface1;
+    background: $background;
+    border: solid $border-blurred;
     margin-bottom: 1;
 }
 
@@ -223,55 +205,27 @@ ModalScreen { align: center middle; background: $crust 70%; }
     text-align: center;
     content-align: center middle;
     text-style: bold;
-    color: $peach;
-    background: $crust;
-    border: solid $surface1;
+    color: $warning;
+    background: $background;
+    border: solid $border-blurred;
     margin-bottom: 1;
 }
 
 #focus-footer, #insights-footer, #fuzzy-footer {
     width: 100%;
     text-align: center;
-    color: $overlay0;
+    color: $text-muted;
 }
-
-/* Theme Overrides - Macchiato (Mid Dark) */
-.theme-macchiato {
-    background: #24273a;
-    color: #cad3f5;
-}
-.theme-macchiato #sidebar, .theme-macchiato #main-content, .theme-macchiato #details-panel { border: solid #494d64; }
-.theme-macchiato .completed-task { color: #8087a2; }
-
-/* Theme Overrides - Frappe (Soft Dark) */
-.theme-frappe {
-    background: #303446;
-    color: #c6d0f5;
-}
-.theme-frappe #sidebar, .theme-frappe #main-content, .theme-frappe #details-panel { border: solid #51576d; }
-.theme-frappe .completed-task { color: #838ba7; }
-
-/* Theme Overrides - Latte (Light Mode) */
-.theme-latte {
-    background: #eff1f5;
-    color: #4c4f69;
-}
-.theme-latte #header-stats { background: #dce0e8; border-bottom: solid #ccd0da; }
-.theme-latte #sidebar, .theme-latte #main-content, .theme-latte #details-panel { border: solid #ccd0da; }
-.theme-latte ListItem.selected { background: #8839ef 15%; }
-.theme-latte .completed-task { color: #8c8fa1; }
-.theme-latte #command-input { background: #e6e9ef; color: #4c4f69; }
-
 /* Narrow terminals: drop the details panel, then shrink the sidebar */
 .narrow #app-grid { grid-size: 2; grid-columns: 28 1fr; }
 .narrow #details-panel { display: none; }
 .tiny #app-grid { grid-size: 2; grid-columns: 20 1fr; }
 .tiny #details-panel { display: none; }
 
-#header-stats Sparkline > .sparkline--max-color { color: $mauve; }
-#header-stats Sparkline > .sparkline--min-color { color: $surface2; }
+#header-stats Sparkline > .sparkline--max-color { color: $primary; }
+#header-stats Sparkline > .sparkline--min-color { color: $border-blurred; }
 
-#details-content MarkdownH1 { color: $mauve; text-align: left; content-align: left middle; text-style: bold; margin: 0 0 1 0; }
-#details-content MarkdownHorizontalRule { color: $surface1; }
+#details-content MarkdownH1 { color: $primary; text-align: left; content-align: left middle; text-style: bold; margin: 0 0 1 0; }
+#details-content MarkdownHorizontalRule { color: $border-blurred; }
 #list-tree { scrollbar-size-horizontal: 0; overflow-x: hidden; }
 TaskItem Label { background: transparent; width: 1fr; padding: 0 2; text-wrap: nowrap; text-overflow: ellipsis; }

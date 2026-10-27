@@ -12,6 +12,7 @@ from textual.containers import Horizontal, Vertical, Container, ScrollableContai
 from textual.binding import Binding
 from textual.reactive import reactive
 from textual.screen import Screen, ModalScreen
+from textual.theme import Theme
 
 from sqlmodel import select, delete
 from .core import AsyncSessionLocal, init_db
@@ -232,12 +233,12 @@ class TaskItem(ListItem):
         text = day.strftime("%d.%m.%y")
         if self.task_status == "completed":
             return f"[dim]{text}[/] "
-        color = "red" if day < today else ("peach" if day == today else "dim")
+        color = "$error" if day < today else ("$warning" if day == today else "dim")
         return f"[{color}]{text}[/] "
 
     def _get_content(self) -> str:
         icon = "☐   " if self.task_status != "completed" else "☑   "
-        visual_marker = "[bold mauve][V][/] " if self.is_selected else ""
+        visual_marker = "[bold $primary][V][/] " if self.is_selected else ""
         prio_marker = ["", "!", "!!"][self.priority]
         prio_class = ["", "prio-med", "prio-high"][self.priority]
         
@@ -285,26 +286,25 @@ class UniversalTaskApp(App):
     selected_ids: reactive[Set[int]] = reactive(set())
     undo_stack: List[tuple] = []
     is_syncing = reactive(False)
-    theme_flavor = reactive("mocha")
+    # short names for the Catppuccin flavours this app started with; "terminal" inherits the terminal's own colors
+    # "mocha" is the original look: Catppuccin Mocha colors on near-black
+    UTASK_THEME = Theme(name="utask", primary="#cba6f7", secondary="#89b4fa", warning="#fab387", error="#f38ba8",
+                        success="#a6e3a1", foreground="#cdd6f4", background="#030303", surface="#0b0b0b", panel="#313244",
+                        dark=True, variables={"border-blurred": "#45475a", "footer-background": "#000000"})
+    THEME_ALIASES = {"mocha": "utask", "macchiato": "catppuccin-macchiato", "frappe": "catppuccin-frappe",
+                     "latte": "catppuccin-latte", "terminal": "ansi-dark", "terminal-light": "ansi-light"}
 
-    def watch_theme_flavor(self, value: str) -> None:
-        if not self.is_mounted:
-            return
-        self.remove_class("theme-mocha")
-        self.remove_class("theme-macchiato")
-        self.remove_class("theme-frappe")
-        self.remove_class("theme-latte")
-        self.add_class(f"theme-{value}")
+    def watch_theme(self, value: str) -> None:
         try:
             from .config import CONFIG_DIR
             (CONFIG_DIR / "theme.txt").write_text(value)
-        except: pass
+        except Exception: pass
 
     def compose(self) -> ComposeResult:
         with Horizontal(id="header-stats"):
             yield Static("[b]◆ utask[/] [dim]v2.1[/]", id="header-title")
             yield Sparkline([0]*20, summary_function=max)
-            yield Static("[green]●[/] ONLINE", id="header-status")
+            yield Static("[$success]●[/] ONLINE", id="header-status")
         
         with Horizontal(id="app-grid"):
             with Vertical(id="sidebar") as v:
@@ -326,17 +326,15 @@ class UniversalTaskApp(App):
         yield Footer()
 
     async def on_mount(self) -> None:
+        self.register_theme(self.UTASK_THEME)
         await init_db()
-        # Load theme
         try:
             from .config import CONFIG_DIR
-            theme_file = CONFIG_DIR / "theme.txt"
-            if theme_file.exists():
-                self.theme_flavor = theme_file.read_text().strip()
-        except: pass
-        
-        # Apply theme class manually for initial mount
-        self.add_class(f"theme-{self.theme_flavor}")
+            saved = (CONFIG_DIR / "theme.txt").read_text().strip()
+            saved = self.THEME_ALIASES.get(saved, saved)
+            self.theme = saved if saved in self.available_themes else "utask"
+        except Exception:
+            self.theme = "utask"
 
         await self.refresh_lists()
         tree = self.query_one("#list-tree", Tree)
@@ -373,7 +371,7 @@ class UniversalTaskApp(App):
 
     def watch_is_syncing(self, value: bool) -> None:
         for header in self.query("#header-status"):
-            header.update("[yellow]●[/] SYNCING" if value else "[green]●[/] ONLINE")
+            header.update("[$warning]●[/] SYNCING" if value else "[$success]●[/] ONLINE")
 
     def watch_selected_ids(self, value: Set[int]) -> None:
         for item in self.query(TaskItem):
@@ -389,7 +387,7 @@ class UniversalTaskApp(App):
             tree.root.expand()
 
             # Inject Smart Views
-            smart = tree.root.add("[bold mauve]◈ SMART VIEWS[/]", expand=True)
+            smart = tree.root.add("[bold $primary]◈ SMART VIEWS[/]", expand=True)
             smart.add_leaf("Heute", data="_smart_today")
             smart.add_leaf("Wichtig", data="_smart_important")
 
@@ -407,7 +405,7 @@ class UniversalTaskApp(App):
                     if prefix not in groups: groups[prefix] = []
                     groups[prefix].append((full_name, name))
                 for prefix, items in groups.items():
-                    node = tree.root.add(f"[bold mauve]{prefix}[/]", expand=True)
+                    node = tree.root.add(f"[bold $primary]{prefix}[/]", expand=True)
                     for full_name, short_name in items:
                         node.add_leaf(short_name, data=full_name)
 
@@ -726,13 +724,14 @@ class UniversalTaskApp(App):
                 else: self.notify("Please specify a target provider label", severity="error")
             elif cmd.startswith("due "):
                 await self.action_set_due(raw_cmd[4:].strip())
-            elif cmd.startswith("theme "):
-                flavor = raw_cmd[6:].strip().lower()
-                if flavor in ("mocha", "macchiato", "frappe", "latte"):
-                    self.theme_flavor = flavor
-                    self.notify(f"Theme switched to {flavor.capitalize()}")
+            elif cmd == "theme" or cmd.startswith("theme "):
+                name = raw_cmd[6:].strip().lower()
+                name = self.THEME_ALIASES.get(name, name)
+                if name in self.available_themes:
+                    self.theme = name
+                    self.notify(f"Theme: {name}")
                 else:
-                    self.notify("Invalid theme. Use mocha, macchiato, frappe, or latte.", severity="error")
+                    self.notify("Themes: terminal (your colors), mocha (default), macchiato, frappe, latte, nord, dracula, gruvbox, tokyo-night, ...", severity="error" if name else "information")
             elif cmd.startswith("template add "):
                 # Usage: :template add "Name" "Title" "Desc"
                 parts = raw_cmd[13:].strip().split('"')

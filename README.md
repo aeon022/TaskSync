@@ -100,7 +100,7 @@ Starte das Interface mit: `utask ui`
     *   **`d`**: Alle markierten gleichzeitig löschen.
     *   **`S`**: Alle markierten auf "Morgen" verschieben.
 *   **`:`**: **Command Bar** – Profi-Befehle:
-    *   `:theme <flavor>` (Mocha, Macchiato, Frappe, Latte)
+    *   `:theme <name>`: `mocha` (Standard), `macchiato`, `frappe`, `latte`, **`terminal`** (übernimmt die Farben deines Terminals, `terminal-light` für helle) und alle Textual-Themes (`nord`, `dracula`, `gruvbox`, `tokyo-night` …); `^p` öffnet die Palette mit Theme-Auswahl
     *   `:due <morgen | 24.12. | friday | none>` (Fälligkeit der markierten Task; wird mit synchronisiert)
     *   `:recur <freq>` (daily, weekly, monthly, none)
     *   `:template add "Alias" "Titel" "Beschreibung"`
