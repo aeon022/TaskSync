@@ -31,7 +31,7 @@ class HelpScreen(ModalScreen):
             except: pass
         
         with Vertical(id="help-dialog"):
-            yield Label(" 📖   utask v2.1 - Documentation (ESC/Q to exit) ", id="help-header")
+            yield Label(" MANUAL ", id="help-header")
             with ScrollableContainer(id="help-scroll"):
                 yield Markdown(content, id="help-markdown")
 
@@ -54,9 +54,9 @@ class FocusScreen(ModalScreen):
 
     def compose(self) -> ComposeResult:
         with Vertical(id="focus-dialog"):
-            yield Label(f" 🚀 FOCUSING ON: {self.task_title} ", id="focus-header")
+            yield Label(f" FOCUS   {self.task_title} ", id="focus-header")
             yield Label(self.format_time(), id="timer-display", classes="large-timer")
-            yield Label("[SPACE] Mark Completed  |  [ESC] Cancel Focus", id="focus-footer")
+            yield Label("[b]space[/] done   [b]esc[/] cancel", id="focus-footer")
 
     def format_time(self) -> str:
         mins, secs = divmod(self.time_remaining, 60)
@@ -91,10 +91,10 @@ class InsightsScreen(ModalScreen):
     """Productivity Insights Dashboard Screen."""
     def compose(self) -> ComposeResult:
         with Vertical(id="insights-dialog"):
-            yield Label(" 📈   PRODUCTIVITY INSIGHTS ", id="insights-header")
+            yield Label(" INSIGHTS ", id="insights-header")
             with ScrollableContainer(id="insights-scroll"):
                 yield Markdown("Calculating insights...", id="insights-markdown")
-            yield Label(" [ESC] Close Dashboard ", id="insights-footer")
+            yield Label(" [b]esc[/] close ", id="insights-footer")
 
     async def on_mount(self) -> None:
         from sqlalchemy import func
@@ -112,7 +112,7 @@ class InsightsScreen(ModalScreen):
             dist = dist_res.all()
             
             # Format Markdown
-            md = f"# Statistics Overview\n\n"
+            md = f"# Overview\n\n"
             md += f"- **Total Tasks Managed:** {total}\n"
             md += f"- **Completed Tasks:** {done} ({(done/total*100):.1f}%)\n"
             md += f"- **Open Tasks:** {open_tasks}\n\n"
@@ -125,7 +125,7 @@ class InsightsScreen(ModalScreen):
                 md += "*No data yet.*\n\n"
             
             md += "---\n\n"
-            md += "💡 *Tip: High completion rates lead to better task management!*"
+            md += "*Done tasks are never deleted, only marked.*"
             
             await self.query_one("#insights-markdown", Markdown).update(md)
 
@@ -137,10 +137,10 @@ class FuzzySearchScreen(ModalScreen):
     """Global Fuzzy Search Modal."""
     def compose(self) -> ComposeResult:
         with Vertical(id="fuzzy-dialog"):
-            yield Label(" 🔍   GLOBAL SEARCH ", id="fuzzy-header")
+            yield Label(" SEARCH ", id="fuzzy-header")
             yield Input(placeholder="Type to find tasks across all lists...", id="fuzzy-input")
             yield ListView(id="fuzzy-results")
-            yield Label(" [ENTER] Jump to Task  |  [ESC] Cancel ", id="fuzzy-footer")
+            yield Label(" [b]enter[/] jump   [b]esc[/] cancel ", id="fuzzy-footer")
 
     def on_mount(self) -> None:
         self.query_one("#fuzzy-input").focus()
@@ -180,12 +180,14 @@ class FuzzySearchScreen(ModalScreen):
 
 class TaskItem(ListItem):
     is_selected = reactive(False)
+    show_due = False  # set per list: the date column only appears when some task has a date
 
     def __init__(self, task: Task):
         super().__init__()
         self.task_id = task.id
         self.task_title = task.title
         self.task_status = task.status
+        self.due = task.due_date
         # Deterministic priority based on title
         self.priority = 2 if "!!" in self.task_title else (1 if "!" in self.task_title else 0)
 
@@ -206,15 +208,30 @@ class TaskItem(ListItem):
         if hasattr(self.app, "selected_ids"):
             self.is_selected = self.task_id in self.app.selected_ids
 
+    def _due_text(self) -> str:
+        """Fixed-width due column (dd.mm), red when overdue, peach today, blank without a date."""
+        if not TaskItem.show_due:
+            return ""
+        if not self.due:
+            return "      "
+        day = self.due.date()
+        today = datetime.now().date()
+        text = day.strftime("%d.%m.")
+        if self.task_status == "completed":
+            return f"[dim]{text}[/] "
+        color = "red" if day < today else ("peach" if day == today else "dim")
+        return f"[{color}]{text}[/] "
+
     def _get_content(self) -> str:
         icon = "☐   " if self.task_status != "completed" else "☑   "
         visual_marker = "[bold mauve][V][/] " if self.is_selected else ""
         prio_marker = ["", "!", "!!"][self.priority]
         prio_class = ["", "prio-med", "prio-high"][self.priority]
         
-        content = f"{visual_marker}{icon}{self.task_title}"
+        due = self._due_text()
+        content = f"{visual_marker}{icon}{due}{self.task_title}"
         if prio_marker:
-            content = f"{visual_marker}{icon}[{prio_class}]{prio_marker}[/] {self.task_title}"
+            content = f"{visual_marker}{icon}{due}[{prio_class}]{prio_marker}[/] {self.task_title}"
         return content
 
     def compose(self) -> ComposeResult:
@@ -408,6 +425,7 @@ class UniversalTaskApp(App):
                 if self.search_filter:
                     tasks = [t for t in tasks if self.search_filter.lower() in t.title.lower()]
                 tasks.sort(key=lambda t: (t.status == "completed", t.title.lower()))
+                TaskItem.show_due = any(t.due_date for t in tasks)
                 for t in tasks: view.append(TaskItem(t))
                 if not tasks:
                     view.append(ListItem(Label("[dim]Nothing here. [b]a[/b] adds a task, [b]s[/b] syncs.[/]"), disabled=True))

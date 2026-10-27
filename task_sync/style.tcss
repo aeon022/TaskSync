@@ -108,7 +108,7 @@ Footer .footer-key--description { color: $subtext0; background: $crust; }
 
 /* List Item - Clean & High Contrast */
 ListItem {
-    padding: 0 2;
+    padding: 0;
     background: transparent;
     transition: background 100ms;
     height: 1;
@@ -184,15 +184,26 @@ Tree .tree--guides {
 }
 
 /* Modals with Thin Borders */
-#focus-dialog, #insights-dialog, #fuzzy-dialog {
+ModalScreen { align: center middle; background: $crust 70%; }
+#focus-dialog, #insights-dialog, #fuzzy-dialog, #help-dialog {
     background: $base;
-    border: solid $mauve;
-    width: 80;
-    height: 30;
-    align: center middle;
+    border: round $mauve;
+    width: 90%;
+    max-width: 84;
+    height: 85%;
+    max-height: 30;
     padding: 1 2;
-    layer: overlay;
 }
+#focus-header, #insights-header, #fuzzy-header, #help-header {
+    width: 100%;
+    color: $mauve;
+    text-style: bold;
+    margin-bottom: 1;
+}
+#help-scroll, #insights-scroll { height: 1fr; }
+#help-dialog MarkdownH1, #help-dialog MarkdownH2, #help-dialog MarkdownH3,
+#insights-dialog MarkdownH1, #insights-dialog MarkdownH2 { color: $mauve; text-style: bold; text-align: left; content-align: left middle; }
+#help-dialog MarkdownBlock Link, #insights-dialog Link { color: $blue; }
 
 #fuzzy-input {
     background: $crust;
@@ -263,3 +274,4 @@ Tree .tree--guides {
 #details-content MarkdownH1 { color: $mauve; text-align: left; content-align: left middle; text-style: bold; margin: 0 0 1 0; }
 #details-content MarkdownHorizontalRule { color: $surface1; }
 #list-tree { scrollbar-size-horizontal: 0; overflow-x: hidden; }
+TaskItem Label { background: transparent; width: 1fr; padding: 0 2; text-wrap: nowrap; text-overflow: ellipsis; }
