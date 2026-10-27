@@ -18,6 +18,7 @@ Scope: the Python package, the scripts, the release workflow, the standalone bin
 | 4 | **`setup.sh` deleted relative to the current folder.** `rm -rf build dist env …` ran wherever you called the script from. | medium | The script changes into the repository folder first and refuses to run elsewhere. |
 | 5 | **Config folder permissions depended on import order.** The folder was created with the default umask (world-readable) when the database module loaded first; the database and the log were readable (`0644`). | low | The folder is created `0700`, database and log are set to `0600`. |
 | 6 | **`utask doctor` gave false assurance.** It reported "✅ Google" because a token existed, and always ended with "System Integrity Confirmed", while the Google refresh token had been revoked (`invalid_grant`) since June. | medium (trust) | Doctor now tries the token (refresh) and says what to do; it only reports success when nothing failed. |
+| 8 | **The website made requests to Google.** The page head contained `preconnect` hints to `fonts.googleapis.com` and `fonts.gstatic.com`, so a visitor's browser contacted Google although no font was loaded. | low (privacy) | Removed; the site now makes no third-party requests (no web fonts, no analytics). |
 | 7 | **Release workflow** had default token permissions and outdated action versions. | low | `permissions: contents: write` only, newer action versions. |
 
 ### Open, and what to do about it
@@ -29,7 +30,7 @@ Scope: the Python package, the scripts, the release workflow, the standalone bin
 | C | **The standalone binary is not signed or notarized.** Users must remove the quarantine flag by hand (`xattr -d com.apple.quarantine`), which teaches them to bypass Gatekeeper. | medium (supply chain trust) | Sign with a Developer ID and notarize; publish SHA-256 checksums next to the download. |
 | D | **Release actions are pinned by version tag, not commit SHA.** | low | Pin `actions/*` and `softprops/action-gh-release` to full commit SHAs. |
 | E | **Legacy plaintext token file code** (`config.py`, `api_google.py`, `api_ms.py`): not used by the current commands, but it writes `tokens.json` (`0600`) if called. | low | Delete the legacy modules. |
-| F | **Website sends no security headers** (HSTS, CSP, `X-Content-Type-Options`, `Referrer-Policy`, `X-Frame-Options`). It is a static site without forms. | low | Add them in the nginx server block. A starting point is in `docs/nginx-headers.conf`. |
+| F | **Website sends no security headers** (HSTS, CSP, `X-Content-Type-Options`, `Referrer-Policy`, `X-Frame-Options`). It is a static site without forms. | low | Add them in the nginx server block. A starting point is in `docs/nginx-headers.conf` (the CSP works because the site loads nothing from other hosts). |
 | G | Remote task descriptions are rendered as Markdown, so links in a shared task can be followed from the details panel. | low | Treat links in shared lists like links in email. |
 
 ### What was checked and found fine
