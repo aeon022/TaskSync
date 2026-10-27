@@ -1,6 +1,6 @@
 import asyncio
 from typing import List, Optional
-from datetime import datetime
+from datetime import datetime, timezone
 import logging
 from .base import RemoteTask, Provider
 from ..security import save_secret, load_secret
@@ -63,7 +63,8 @@ class GoogleTasksProvider:
                 title=item['title'],
                 status=item['status'],
                 list_name=list_name or 'Google Tasks',
-                last_modified=datetime.fromisoformat(item['updated'].replace('Z', '+00:00'))
+                last_modified=datetime.fromisoformat(item['updated'].replace('Z', '+00:00')),
+                due=datetime.fromisoformat(item['due'].replace('Z', '+00:00')) if item.get('due') else None
             ) for item in items]
         except Exception as e:
             logger.error(f"Google Tasks Error fetching tasks: {e}")

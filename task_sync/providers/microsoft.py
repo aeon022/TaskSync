@@ -2,7 +2,7 @@ import asyncio
 import aiohttp
 import msal
 from typing import List, Optional
-from datetime import datetime
+from datetime import datetime, timezone
 from .base import RemoteTask, Provider
 from ..security import save_secret, load_secret
 
@@ -59,7 +59,8 @@ class MicrosoftToDoProvider:
                     title=item['title'],
                     status='completed' if item['status'] == 'completed' else 'needsAction',
                     list_name=list_name or 'Microsoft To Do',
-                    last_modified=datetime.fromisoformat(item['lastModifiedDateTime'].replace('Z', '+00:00'))
+                    last_modified=datetime.fromisoformat(item['lastModifiedDateTime'].replace('Z', '+00:00')),
+                    due=datetime.fromisoformat(item['dueDateTime']['dateTime'][:19]).replace(tzinfo=timezone.utc) if item.get('dueDateTime') else None
                 ) for item in items]
 
     async def _get_lists_raw(self, session, headers) -> List[dict]:

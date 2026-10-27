@@ -209,14 +209,14 @@ class TaskItem(ListItem):
             self.is_selected = self.task_id in self.app.selected_ids
 
     def _due_text(self) -> str:
-        """Fixed-width due column (dd.mm), red when overdue, peach today, blank without a date."""
+        """Fixed-width due column (dd.mm.yy), red when overdue, peach today, blank without a date."""
         if not TaskItem.show_due:
             return ""
         if not self.due:
-            return "      "
+            return "         "
         day = self.due.date()
         today = datetime.now().date()
-        text = day.strftime("%d.%m.")
+        text = day.strftime("%d.%m.%y")
         if self.task_status == "completed":
             return f"[dim]{text}[/] "
         color = "red" if day < today else ("peach" if day == today else "dim")
@@ -410,7 +410,7 @@ class UniversalTaskApp(App):
                 if self.current_list == "_smart_today":
                     from datetime import time
                     today_end = datetime.combine(datetime.now(timezone.utc).date(), time.max, tzinfo=timezone.utc)
-                    statement = select(Task).where(Task.due_date <= today_end)
+                    statement = select(Task).where(Task.due_date <= today_end, Task.status != "completed")
                 elif self.current_list == "_smart_important":
                     statement = select(Task).where(Task.title.contains("!"))
                 else:
@@ -424,7 +424,7 @@ class UniversalTaskApp(App):
                 # Apply search filter
                 if self.search_filter:
                     tasks = [t for t in tasks if self.search_filter.lower() in t.title.lower()]
-                tasks.sort(key=lambda t: (t.status == "completed", t.title.lower()))
+                tasks.sort(key=lambda t: (t.status == "completed", t.due_date is None, t.due_date or datetime.max, t.title.lower()))
                 TaskItem.show_due = any(t.due_date for t in tasks)
                 for t in tasks: view.append(TaskItem(t))
                 if not tasks:

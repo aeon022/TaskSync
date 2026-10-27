@@ -37,6 +37,12 @@ def get_lists() -> List[str]:
     calendars = store.calendarsForEntityType_(EKEntityTypeReminder)
     return [cal.title() for cal in calendars]
 
+def _due(comps):
+    """EKReminder.dueDateComponents -> (y, m, d) or None. Missing parts come back as a huge sentinel."""
+    if comps is None: return None
+    y, m, d = comps.year(), comps.month(), comps.day()
+    return (y, m, d) if 1970 < y < 3000 and 1 <= m <= 12 and 1 <= d <= 31 else None
+
 def get_tasks(list_name: str = "Reminders") -> List[Dict[str, Any]]:
     """Holt Aufgaben einer Liste ohne die App zu öffnen."""
     if not is_mac(): return []
@@ -59,6 +65,7 @@ def get_tasks(list_name: str = "Reminders") -> List[Dict[str, Any]]:
                     "id": r.calendarItemExternalIdentifier(),
                     "title": r.title(),
                     "completed": r.isCompleted(),
+                    "due": _due(r.dueDateComponents()),
                     "list_name": list_name
                 })
         event.set()

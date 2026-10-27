@@ -22,7 +22,8 @@ class AppleRemindersProvider(Provider):
             title=t["title"],
             status="completed" if t["completed"] else "needsAction",
             list_name=effective_list,
-            last_modified=datetime.now(timezone.utc) # EventKit is tricky with modification dates
+            last_modified=datetime.now(timezone.utc), # EventKit is tricky with modification dates
+            due=datetime(*t["due"], tzinfo=timezone.utc) if t.get("due") else None
         ) for t in tasks]
 
     async def get_lists(self) -> List[str]:

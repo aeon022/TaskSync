@@ -9,6 +9,7 @@ class RemoteTask(BaseModel):
     status: str
     list_name: str
     last_modified: datetime
+    due: Optional[datetime] = None  # date only (midnight UTC); read from the provider, never pushed back
 
 class Provider(Protocol):
     name: str

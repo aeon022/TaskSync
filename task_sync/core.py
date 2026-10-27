@@ -182,6 +182,9 @@ class SyncEngine:
                             task.list_name = display_name
                             session.add(task)
                             session.add(SyncLog(task_id=task.id, event="REMOTE_UPDATED", details=f"Pulled update from {provider_name}"))
+                        if not task.sync_pending and task.due_date != rt.due:
+                            task.due_date = rt.due  # due dates are read-only here, so the remote value always wins
+                            session.add(task)
                         mapping.last_sync = now_utc
                         session.add(mapping)
                 else:
@@ -192,6 +195,7 @@ class SyncEngine:
                         status=rt.status, 
                         list_name=display_name, 
                         last_modified=rt_modified, 
+                        due_date=rt.due,
                         source_provider=provider_name
                     )
                     session.add(new_task)
