@@ -29,6 +29,18 @@ const {
     <meta name="title" content={title} />
     <meta name="description" content={description} />
     <link rel="canonical" href={canonicalURL} />
+    <script type="application/ld+json" set:html={JSON.stringify({
+      "@context": "https://schema.org",
+      "@type": "SoftwareApplication",
+      name: "utask",
+      applicationCategory: "ProductivityApplication",
+      operatingSystem: "macOS",
+      description,
+      url: canonicalURL,
+      license: "https://opensource.org/licenses/MIT",
+      codeRepository: "https://github.com/aeon022/TaskSync",
+      offers: { "@type": "Offer", price: "0", priceCurrency: "EUR", description: "Free and open source; the ready-to-run macOS binary is pay what you want from 3 EUR" },
+    })} />
 
     <!-- Open Graph / Facebook -->
     <meta property="og:type" content="website" />
