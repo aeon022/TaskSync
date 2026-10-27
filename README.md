@@ -6,6 +6,8 @@
 
 ---
 
+Neu hier? [QUICKSTART.md](QUICKSTART.md) (English): die ersten 10 Minuten.
+
 ## 🛠️ Installation & Setup
 
 ### 0. Ohne Python: fertiges Binary
