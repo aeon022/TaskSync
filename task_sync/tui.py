@@ -447,14 +447,26 @@ class UniversalTaskApp(App):
     async def update_details(self, task_id: int) -> None:
         async with AsyncSessionLocal() as session:
             task = await session.get(Task, task_id)
-            if task:
-                content = (f"# {task.title}\n\n"
-                           f"**Status:** {task.status} | **List:** {task.list_name}\n\n"
-                           f"**Modified:** {task.last_modified.strftime('%Y-%m-%d %H:%M')} | **Source:** {task.source_provider or 'Local'}\n\n"
-                           f"---\n\n"
-                           f"{task.description or '*No notes available.*'}")
-                for detail in self.query("#details-content"):
-                    await detail.update(content)
+            if not task:
+                return
+        done = task.status == "completed"
+        lines = [f"# {task.title}", ""]
+        if task.due_date:
+            days = (task.due_date.date() - datetime.now().date()).days
+            when = ("today" if days == 0 else "tomorrow" if days == 1 else
+                    f"in {days} days" if days > 1 else f"{-days} day{'s' if days < -1 else ''} overdue")
+            lines.append(f"**Due**  {task.due_date.strftime('%a %d.%m.%Y')} · {'done' if done else when}")
+            lines.append("")
+        lines.append(f"**Status**  {'done' if done else 'open'}")
+        lines.append("")
+        lines.append(f"**List**  {task.list_name}")
+        lines.append("")
+        if task.recurrence:
+            lines += [f"**Repeats**  {task.recurrence}", ""]
+        lines.append(f"**Source**  {task.source_provider or 'local'} · changed {task.last_modified.strftime('%d.%m.%Y %H:%M')}")
+        lines += ["", "---", "", task.description or "*No notes.*"]
+        for detail in self.query("#details-content"):
+            await detail.update("\n".join(lines))
 
     def action_focus_command(self) -> None:
         for container in self.query("#command-container"):
