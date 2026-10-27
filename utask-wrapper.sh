@@ -16,4 +16,4 @@ fi
 $UTASK_CMD add "$1"
 
 # Optionale macOS Notification (AppleScript)
-osascript -e "display notification \"Task hinzugefügt: $1\" with title \"🚀 utask v2.0\""
+osascript -e 'on run argv' -e 'display notification (item 1 of argv) with title (item 2 of argv)' -e 'end run' -- "Task hinzugefügt: $1" "utask"

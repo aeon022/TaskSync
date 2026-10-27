@@ -13,10 +13,16 @@ from textual.binding import Binding
 from textual.reactive import reactive
 from textual.screen import Screen, ModalScreen
 from textual.theme import Theme
+from .notify import notify
 
 from sqlmodel import select, delete
 from .core import AsyncSessionLocal, init_db
 from .models import Task, TaskList
+
+def escape(text: str) -> str:
+    """Show remote text as typed. Titles come from other people's lists and from your own habits ("[WIP] fix", "Notes [2026]"):
+    Textual's markup would swallow or choke on every [..], so every [ is escaped."""
+    return (text or "").replace("\\", "\\\\").replace("[", "\\[")
 
 class HelpScreen(ModalScreen):
     """Displays the README.md content as a help manual."""
@@ -77,7 +83,7 @@ class FocusScreen(ModalScreen):
 
     def notify_completion(self) -> None:
         msg = f"Pomodoro beendet: {self.task_title}"
-        subprocess.run(["osascript", "-e", f'display notification "{msg}" with title "🚀 utask v2.0"'])
+        notify(msg, "utask")
         self.query_one("#timer-display", Label).update("DONE!")
         self.query_one("#timer-display", Label).styles.color = "green"
 
@@ -162,7 +168,7 @@ class FuzzySearchScreen(ModalScreen):
                 
                 for task in tasks:
                     status_icon = "☑ " if task.status == "completed" else "☐ "
-                    label_text = f"{status_icon}{task.title} [dim]({task.list_name})[/]"
+                    label_text = f"{status_icon}{escape(task.title)} [dim]({escape(task.list_name)})[/]"
                     item = ListItem(Label(label_text, classes="completed-task" if task.status == "completed" else ""))
                     # Store metadata on the item for retrieval
                     item.task_id = task.id
@@ -243,9 +249,9 @@ class TaskItem(ListItem):
         prio_class = ["", "prio-med", "prio-high"][self.priority]
         
         due = self._due_text()
-        content = f"{visual_marker}{icon}{due}{self.task_title}"
+        content = f"{visual_marker}{icon}{due}{escape(self.task_title)}"
         if prio_marker:
-            content = f"{visual_marker}{icon}{due}[{prio_class}]{prio_marker}[/] {self.task_title}"
+            content = f"{visual_marker}{icon}{due}[{prio_class}]{prio_marker}[/] {escape(self.task_title)}"
         return content
 
     def compose(self) -> ComposeResult:

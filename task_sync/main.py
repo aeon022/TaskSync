@@ -251,6 +251,31 @@ def logs(lines: int = 20):
         for line in content[-lines:]:
             typer.echo(line.strip())
 
+def _check_provider(kind: str, instance, label: str):
+    """(mark, note) for `doctor`. Credentials that exist are not credentials that work: a Google refresh token that was
+    revoked looks fine until you try it, so we try it."""
+    try:
+        if kind == "google":
+            if not instance.creds:
+                return "❌", f": not authorized, run: utask auth-google --label \"{label}\""
+            if instance.creds.expired and instance.creds.refresh_token:
+                from google.auth.transport.requests import Request
+                instance.creds.refresh(Request())
+                instance._save_creds(instance.creds)
+            return "✅", ": token works"
+        if kind == "microsoft":
+            if not instance.client_id:
+                return "❌", ": no client ID, run: utask auth-microsoft --client-id ... --label ..."
+            if not instance.app.get_accounts():
+                return "⚠️", ": client ID saved, but no signed-in account in this session (sign in with: utask sync)"
+            return "✅", ": signed in"
+    except Exception as e:  # a failed refresh (invalid_grant) lands here
+        text = str(e)
+        hint = f", re-authorize: utask auth-{kind} --label \"{label}\"" if "invalid_grant" in text or kind == "google" else ""
+        return "❌", f": {text[:90]}{hint}"
+    return "✅", ""
+
+
 @app.command()
 def doctor():
     """Check system health and diagnostic information."""
@@ -293,24 +318,21 @@ def doctor():
     
     from .config import load_provider_config
     from .providers import get_provider
+    problems = 0
     providers = load_provider_config()
     for p in providers:
         instance = get_provider(p["type"], p["label"])
-        if instance:
-            # Simple check: try to get lists (cached if possible)
-            try:
-                # We just check if auth exists
-                auth_ok = "✅"
-                if p["type"] == "google":
-                    auth_ok = "✅" if instance._load_creds() else "❌"
-                elif p["type"] == "microsoft":
-                    auth_ok = "✅" if instance.client_id else "❌"
-                typer.echo(f"  {auth_ok} {p['type'].capitalize()} ({p['label']})")
-            except:
-                typer.echo(f"  ❌ {p['type'].capitalize()} ({p['label']}) - Error")
+        if not instance:
+            continue
+        mark, note = _check_provider(p["type"], instance, p["label"])
+        problems += mark == "❌"
+        typer.echo(f"  {mark} {p['type'].capitalize()} ({p['label']}){note}")
 
     typer.echo("-" * 30)
-    typer.secho("System Integrity Confirmed.", fg=typer.colors.GREEN)
+    if problems:
+        typer.secho(f"{problems} problem(s) found, see above.", fg=typer.colors.RED)
+    else:
+        typer.secho("All checks passed.", fg=typer.colors.GREEN)
 
 if __name__ == "__main__":
     app()

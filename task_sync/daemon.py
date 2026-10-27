@@ -3,6 +3,7 @@ import os
 import signal
 import sys
 from pathlib import Path
+from xml.sax.saxutils import escape
 
 # Template for macOS launchd
 LAUNCHD_PLIST = """<?xml version="1.0" encoding="UTF-8"?>
@@ -13,8 +14,7 @@ LAUNCHD_PLIST = """<?xml version="1.0" encoding="UTF-8"?>
     <string>com.aeon022.utaskd</string>
     <key>ProgramArguments</key>
     <array>
-        <string>{python_path}</string>
-        <string>{main_path}</string>
+{program_args}
         <string>daemon</string>
         <string>--interval</string>
         <string>300</string>
@@ -31,24 +31,24 @@ LAUNCHD_PLIST = """<?xml version="1.0" encoding="UTF-8"?>
 </plist>
 """
 
+def program_arguments() -> str:
+    """ProgramArguments entries for the plist. A PyInstaller binary starts itself (`utask daemon`); a Python install starts
+    the interpreter with the entry script. Both values are XML-escaped (paths may contain & or <)."""
+    if getattr(sys, "frozen", False):
+        items = [sys.executable]
+    else:
+        items = [sys.executable, os.path.abspath(sys.argv[0])]
+    return "\n".join(f"        <string>{escape(i)}</string>" for i in items)
+
 def install_daemon():
     """Installs the utaskd plist into ~/Library/LaunchAgents."""
-    python_path = sys.executable
-    main_path = os.path.abspath(sys.argv[0])
-    # If running via wrapper, we need the actual entry point
-    if main_path.endswith("utask") and not main_path.endswith(".py"):
-        # Assume it's the wrapper or installed script
-        pass 
-    
+    program_args = program_arguments()
+
     log_dir = Path.home() / ".config" / "tasksync"
     log_path = log_dir / "daemon.log"
     plist_path = Path.home() / "Library" / "LaunchAgents" / "com.aeon022.utaskd.plist"
     
-    content = LAUNCHD_PLIST.format(
-        python_path=python_path,
-        main_path=main_path,
-        log_path=log_path
-    )
+    content = LAUNCHD_PLIST.format(program_args=program_args, log_path=escape(str(log_path)))
     
     os.makedirs(plist_path.parent, exist_ok=True)
     with open(plist_path, "w") as f:

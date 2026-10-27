@@ -5,6 +5,10 @@
 
 set -e
 
+# Always work inside the repository folder: the cleanup below uses relative paths (rm -rf build dist ...) and must never run in another directory.
+cd "$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
+[ -f pyproject.toml ] && [ -d task_sync ] || { echo "Error: not the utask repository folder."; exit 1; }
+
 echo "------------------------------------------------"
 echo "🚀 utask v2.0 - Merciless Setup"
 echo "------------------------------------------------"

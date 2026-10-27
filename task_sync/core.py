@@ -16,7 +16,8 @@ from .models import Task, SyncMapping, TaskList, TaskTemplate, SyncLog
 
 CONFIG_DIR = Path.home() / ".config" / "tasksync"
 LOG_FILE = CONFIG_DIR / "daemon.log"
-os.makedirs(CONFIG_DIR, exist_ok=True)
+os.makedirs(CONFIG_DIR, mode=0o700, exist_ok=True)
+os.chmod(CONFIG_DIR, 0o700)  # the database and the log hold your task titles: only you may read them
 
 # Logging Setup
 logger = logging.getLogger("utaskd")
@@ -35,6 +36,9 @@ AsyncSessionLocal = sessionmaker(
 async def init_db():
     async with engine.begin() as conn:
         await conn.run_sync(SQLModel.metadata.create_all)
+    for private in (CONFIG_DIR / 'state.db', LOG_FILE):
+        if private.exists():
+            os.chmod(private, 0o600)
     
     # Basic migration check for missing columns
     import sqlite3
