@@ -1,10 +1,11 @@
 ---
+import { Icon } from "astro-icon/components";
 ---
 <div id="cookie-banner" class="fixed bottom-10 left-6 right-6 md:left-10 md:right-auto md:max-w-sm z-[100] translate-y-[150%] transition-transform duration-700 ease-out">
   <div class="bg-zinc-950 border border-zinc-800 p-6 rounded-2xl shadow-2xl shadow-black border-glow">
     <div class="flex items-start gap-4 mb-4">
       <div class="w-10 h-10 rounded-full bg-mauve/10 flex items-center justify-center flex-shrink-0">
-        <span class="text-xl">🍪</span>
+        <Icon name="lucide:cookie" class="w-5 h-5 text-mauve" />
       </div>
       <div>
         <h3 class="text-sm font-bold text-white mb-1 tracking-tight">Cookie Settings</h3>

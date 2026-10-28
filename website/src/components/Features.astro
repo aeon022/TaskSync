@@ -1,49 +1,50 @@
 ---
+import { Icon } from "astro-icon/components";
 const features = [
   {
     title: "Headless Sync",
     desc: "A background daemon keeps your tasks in sync without you ever noticing.",
-    icon: "🔄",
+    icon: "refresh-cw",
   },
   {
     title: "Global Search",
     desc: "Find and jump to any task across all lists and accounts instantly. Press / from anywhere.",
-    icon: "🔍",
+    icon: "search",
   },
   {
     title: "Focus Mode",
     desc: "Enter a deep work state with a 25-minute Pomodoro timer directly in your TUI.",
-    icon: "🧘",
+    icon: "timer",
   },
   {
     title: "Raycast Ready",
     desc: "Add tasks and view your day from Raycast without touching the terminal.",
-    icon: "🏎️",
+    icon: "zap",
   },
   {
     title: "Shared Config",
     desc: "Sync your active providers across multiple Macs using iCloud Drive.",
-    icon: "☁️",
+    icon: "cloud",
   },
   {
     title: "Your Colors",
     desc: "Over twenty themes (Catppuccin, Nord, Dracula, Gruvbox …) and one that simply uses your terminal's own colors: :theme terminal.",
-    icon: "🎨",
+    icon: "palette",
   },
   {
     title: "Recurring Tasks",
     desc: "Automate your routine with daily, weekly, or monthly repeating task instances.",
-    icon: "🔁",
+    icon: "repeat",
   },
   {
     title: "Setup Assistant",
     desc: "Add Google, Microsoft or Apple accounts, check them and sign in again right inside the TUI: press A, or run utask setup. Secrets stay in your Keychain.",
-    icon: "🧭",
+    icon: "compass",
   },
   {
     title: "Due Dates",
     desc: "Type \"Call the plumber @tomorrow\" and it lands in the right list with the right date. Dates sync both ways, overdue ones turn red.",
-    icon: "📅",
+    icon: "calendar-clock",
   }
 ];
 ---
@@ -52,7 +53,7 @@ const features = [
   <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
     {features.map(f => (
       <div class="bg-zinc-950 border border-zinc-800 p-8 rounded-2xl border-glow hover:border-zinc-700 transition-colors reveal">
-        <div class="text-3xl mb-4">{f.icon}</div>
+        <Icon name={`lucide:${f.icon}`} class="w-8 h-8 mb-4 text-mauve" />
         <h3 class="text-xl font-bold mb-2 text-white">{f.title}</h3>
         <p class="text-zinc-500 text-sm leading-relaxed">{f.desc}</p>
       </div>

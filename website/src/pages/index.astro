@@ -3,6 +3,7 @@ import Layout from '../layouts/Layout.astro';
 import Navbar from '../components/Navbar.astro';
 import Hero from '../components/Hero.astro';
 import Terminal from '../components/Terminal.astro';
+import { Icon } from "astro-icon/components";
 import Features from '../components/Features.astro';
 import FooterSignature from '../components/FooterSignature.astro';
 import CookieBanner from '../components/CookieBanner.astro';
@@ -60,21 +61,21 @@ import CookieBanner from '../components/CookieBanner.astro';
         <div class="order-2 md:order-1 bg-[#0b0b0b] border border-zinc-800 p-8 rounded-3xl border-glow">
           <div class="flex flex-col gap-6">
             <div class="flex gap-4">
-              <div class="w-12 h-12 rounded-xl bg-mauve/10 border border-mauve/20 flex items-center justify-center text-xl">🧘</div>
+              <div class="w-12 h-12 rounded-xl bg-mauve/10 border border-mauve/20 flex items-center justify-center"><Icon name="lucide:timer" class="w-6 h-6" /></div>
               <div>
                 <div class="font-bold text-white">Pomodoro Focus</div>
                 <div class="text-xs text-zinc-500">25min Zen-mode directly in TUI</div>
               </div>
             </div>
             <div class="flex gap-4">
-              <div class="w-12 h-12 rounded-xl bg-peach/10 border border-peach/20 flex items-center justify-center text-xl">🪄</div>
+              <div class="w-12 h-12 rounded-xl bg-peach/10 border border-peach/20 flex items-center justify-center"><Icon name="lucide:wand-sparkles" class="w-6 h-6" /></div>
               <div>
                 <div class="font-bold text-white">Magic Move</div>
                 <div class="text-xs text-zinc-500">Migrate tasks between providers instantly</div>
               </div>
             </div>
             <div class="flex gap-4">
-              <div class="w-12 h-12 rounded-xl bg-blue/10 border border-blue/20 flex items-center justify-center text-xl">📖</div>
+              <div class="w-12 h-12 rounded-xl bg-blue/10 border border-blue/20 flex items-center justify-center"><Icon name="lucide:book-open" class="w-6 h-6" /></div>
               <div>
                 <div class="font-bold text-white">Markdown Notes</div>
                 <div class="text-xs text-zinc-500">Rich task descriptions with full formatting</div>
@@ -214,7 +215,7 @@ import CookieBanner from '../components/CookieBanner.astro';
       <div class="bg-peach/5 border border-peach/20 p-12 rounded-[3rem] border-glow relative overflow-hidden group">
         <div class="absolute -top-20 -right-20 w-64 h-64 bg-peach/10 blur-[100px] rounded-full group-hover:bg-peach/20 transition-all duration-1000"></div>
         <div class="relative z-10">
-          <div class="text-4xl mb-6">☕</div>
+          <Icon name="lucide:coffee" class="w-10 h-10 mb-6 mx-auto text-peach" />
           <h2 class="text-3xl font-bold text-white mb-4">Fuel the development.</h2>
           <p class="text-zinc-400 max-w-md mx-auto mb-10 leading-relaxed">
             utask is free and open-source. If you love using it and want to support the journey, consider buying me a coffee.
