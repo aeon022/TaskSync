@@ -1,12 +1,12 @@
 # utask
 
-> utask is a terminal app and CLI that syncs Apple Reminders, Google Tasks and Microsoft To Do. It keeps tasks in a local database, offers a full-screen interface with search, due dates and themes, and runs a background sync daemon. macOS, open source (MIT).
+> utask is a terminal app and CLI that syncs Apple Reminders, Google Tasks and Microsoft To Do. It keeps tasks in a local database, offers a full-screen interface with search, due dates, themes and a setup assistant for accounts and re-sign-in, and runs a background sync daemon. macOS, open source (MIT).
 
 utask is a Python application (Textual interface, Typer CLI). The ready-to-run macOS binary is pay what you want from 3 EUR; the source is free.
 
 ## Docs
 
-- [Quick start](https://raw.githubusercontent.com/aeon022/TaskSync/main/QUICKSTART.md): the first 10 minutes: accounts, keys, due dates, themes, background sync
+- [Quick start](https://raw.githubusercontent.com/aeon022/TaskSync/main/QUICKSTART.md): the first 10 minutes: accounts (setup assistant), keys, due dates, themes, background sync
 - [README (German)](https://raw.githubusercontent.com/aeon022/TaskSync/main/README.md): installation, daemon, shared config, keys, commands, troubleshooting
 
 ## Project
