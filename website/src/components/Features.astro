@@ -4,7 +4,7 @@ const features = [
   {
     title: "Headless Sync",
     desc: "A background daemon keeps your tasks in sync without you ever noticing.",
-    icon: "refresh-cw",
+    icon: "reload",
   },
   {
     title: "Global Search",
@@ -14,7 +14,7 @@ const features = [
   {
     title: "Focus Mode",
     desc: "Enter a deep work state with a 25-minute Pomodoro timer directly in your TUI.",
-    icon: "timer",
+    icon: "clock",
   },
   {
     title: "Raycast Ready",
@@ -29,7 +29,7 @@ const features = [
   {
     title: "Your Colors",
     desc: "Over twenty themes (Catppuccin, Nord, Dracula, Gruvbox …) and one that simply uses your terminal's own colors: :theme terminal.",
-    icon: "palette",
+    icon: "paint-bucket",
   },
   {
     title: "Recurring Tasks",
@@ -44,7 +44,7 @@ const features = [
   {
     title: "Due Dates",
     desc: "Type \"Call the plumber @tomorrow\" and it lands in the right list with the right date. Dates sync both ways, overdue ones turn red.",
-    icon: "calendar-clock",
+    icon: "calendar",
   }
 ];
 ---
@@ -53,7 +53,7 @@ const features = [
   <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
     {features.map(f => (
       <div class="bg-zinc-950 border border-zinc-800 p-8 rounded-2xl border-glow hover:border-zinc-700 transition-colors reveal">
-        <Icon name={`lucide:${f.icon}`} class="w-8 h-8 mb-4 text-mauve" />
+        <Icon name={`pixelarticons:${f.icon}`} class="w-8 h-8 mb-4 text-zinc-400" />
         <h3 class="text-xl font-bold mb-2 text-white">{f.title}</h3>
         <p class="text-zinc-500 text-sm leading-relaxed">{f.desc}</p>
       </div>
